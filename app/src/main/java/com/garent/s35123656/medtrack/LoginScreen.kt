@@ -76,21 +76,21 @@ fun LoginScreen(
             // 4. Login Button with CSV Validation Logic
             Button(
                 onClick = {
-                    // Step 1: Validate fields are not empty [Requirement]
+                    // Step 1: Validate fields are not empty
                     if (phone.isBlank() || password.isBlank()) {
                         Toast.makeText(context, "Fields cannot be blank", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
-                    // Step 2: Authenticate against patients.csv [Requirement]
+                    // Step 2: Authenticate against patients.csv
                     val loggedInId = validateLogin(context, phone, password)
 
                     if (loggedInId != null) {
                         Toast.makeText(context, "Login Successful", Toast.LENGTH_SHORT).show()
-                        // Step 3: On success, trigger navigation [Requirement]
+                        // Step 3: On success, trigger navigation
                         onLoginSuccess(loggedInId)
                     } else {
-                        // Detailed error messages based on what failed [Requirement]
+                        // Detailed error messages based on what failed
                         Toast.makeText(context, "Incorrect phone or password", Toast.LENGTH_SHORT).show()
                     }
                 },
