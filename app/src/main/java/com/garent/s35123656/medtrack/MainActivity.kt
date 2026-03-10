@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WelcomeScreen(modifier: Modifier = Modifier) {
     // Needed for the Intent is initiated from
-
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
