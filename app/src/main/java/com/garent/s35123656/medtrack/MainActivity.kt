@@ -1,20 +1,37 @@
 package com.garent.s35123656.medtrack
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
+import kotlin.jvm.java
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,14 +39,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MedTrackTheme {
-                // Create and remember controller
-                val navController = rememberNavController()
-                // layout structure
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MedTrackNavigation(
-                        navController = navController,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    WelcomeScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -37,30 +48,77 @@ class MainActivity : ComponentActivity() {
 }
 
 
-//
-//@Composable
-//fun MedTrackNavigation(modifier: Modifier = Modifier){
-//    val navController = rememberNavController()
-//
-//    // The startDestination ensures the Welcome screen shows up first
-//    NavHost(
-//        navController = navController,
-//
-//        // ensure welcome screen shows up first
-//        startDestination = "welcome",
-//        modifier = modifier
-//    ) {
-//        composable("welcome") {
-//            WelcomeScreen(
-//                onNavigateToLogin = { navController.navigate("login") }
-//            )
-//        }
-//        composable("login") {
-//            LoginScreen(
-//                onLoginSuccess = { patientId ->
-//                    navController.navigate("home")
-//                }
-//            )
-//        }
-//    }
-//}
+@Composable
+fun WelcomeScreen(modifier: Modifier = Modifier) {
+    // Needed for the Intent is initiated from
+
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Logo above MedTrack
+        Image(
+            painter = painterResource(id = R.drawable.choms2), // Replace 'logo' with your actual file name
+            contentDescription = "App Logo",
+            modifier = Modifier.size(120.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // App Name
+        Text(
+            text = "MedTrack",
+            fontSize = 42.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Health Disclaimer
+        Text(
+            text = "This app is for tracking purposes only and does not replace professional medical advice.",
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            color = Color.Gray
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Monash Health Link
+        TextButton(onClick = {
+            uriHandler.openUri("https://www.monashhealth.org")
+        }) {
+            Text("Visit Monash Health Clinic")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Login Button using Intent
+        Button(
+            onClick = {
+                // Navigates to LoginActivity using the standard Intent method
+                // Use the name of the ACTUAL CLASS you created
+                context.startActivity(Intent(context, LoginScreen::class.java))
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Login")
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Student Info (Requirement)
+        Text(
+            text = "By Garent Ngor Jun Hoe (35123656)",
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.DarkGray
+        )
+    }
+}
