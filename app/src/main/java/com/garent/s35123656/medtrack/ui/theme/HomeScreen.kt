@@ -43,34 +43,49 @@ import java.util.Calendar
 import java.util.Locale
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import com.garent.s35123656.medtrack.AddMedication
+import com.garent.s35123656.medtrack.SymptomsScreen
+import kotlin.jvm.java
+
+
+// for navigation to different screen
+sealed class Screen(val label: String, val iconId: Int) {
+    object Home : Screen("Home", android.R.drawable.ic_menu_today)
+    object Symptoms : Screen("Symptoms", android.R.drawable.ic_dialog_alert)
+}
 
 class HomeScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Get Patient id from login screen
         val patientId = intent.getStringExtra("PATIENT_ID") ?: ""
+
         setContent {
             MedTrackTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Home(
-                        patientId = patientId,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Scaffold(
+                    bottomBar = { MedTrackBottomBar(currentScreen =  "Home", patientId) }
+                ) { innerPadding ->
+                    // Just call Home directly
+                    Home(patientId = patientId, modifier = Modifier.padding(innerPadding))
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun Home(patientId: String, modifier: Modifier = Modifier) {
@@ -295,6 +310,39 @@ data class Medication(
 )
 
 
+
+@Composable
+fun MedTrackBottomBar(currentScreen: String, patientId: String) {
+    val context = LocalContext.current
+    NavigationBar {
+        // Home Tab
+        NavigationBarItem(
+            selected = currentScreen == "Home",
+            onClick = {
+                if (currentScreen != "Home") {
+                    val intent = Intent(context, HomeScreen::class.java)
+                    intent.putExtra("PATIENT_ID", patientId) // <--- CRITICAL
+                    context.startActivity(intent)
+                }
+            },
+            label = { Text("Home") },
+            icon = { Icon(painterResource(android.R.drawable.ic_menu_today), null) }
+        )
+        // Symptoms Tab
+        NavigationBarItem(
+            selected = currentScreen == "Symptoms",
+            onClick = {
+                if (currentScreen != "Symptoms") {
+                    val intent = Intent(context, SymptomsScreen::class.java)
+                    intent.putExtra("PATIENT_ID", patientId) // <--- CRITICAL
+                    context.startActivity(intent)
+                }
+            },
+            label = { Text("Symptoms") },
+            icon = { Icon(painterResource(android.R.drawable.ic_dialog_alert), null) }
+        )
+    }
+}
 
 // FOR PREVIEW ONLYYY
 @Preview(showBackground = true, name = "Home Screen Preview")
