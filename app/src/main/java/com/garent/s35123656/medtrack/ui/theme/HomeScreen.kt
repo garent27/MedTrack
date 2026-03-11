@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +40,11 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 
 class HomeScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,13 +75,22 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
     // Find patient name from ID from database
     patientName = getPatientName(context, patientId)
-    val medicationList = remember(patientId) { getMedicationsForPatient(context, patientId) }
 
 
     // set a variable for current date time
     val calendar = Calendar.getInstance().time
     val dateFormat = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
     val currentDate = dateFormat.format(calendar)
+
+    // init medication list and load from csv
+    var medicationList by remember { mutableStateOf(listOf<Medication>()) }
+    LaunchedEffect(patientId) {
+        medicationList = getMedicationsForPatient(context, patientId)
+    }
+
+    // init for the Summary Bar
+    val totalMeds = medicationList.size
+    val takenMeds = medicationList.count { it.isTaken }
 
 
     // for alignment
@@ -84,6 +99,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .padding(24.dp)
     ) {
+        // Show patients name
         Text(
             text = "Hello, $patientName",
             fontSize = 28.sp,
@@ -93,6 +109,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Show current date
         Text(
             text = currentDate,
             fontSize = 18.sp,
@@ -101,27 +118,54 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(24.dp))
 
+        // your medications text
         Text(
             text = "Your Medications",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
 
+
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3. Medication List (The Scrolling Part)
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
+        // 3. The Summary Bar
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(8.dp)
         ) {
-            items(medicationList) { med ->
-                MedicationCard(med)
-            }
+            Text(
+                text = "$takenMeds of $totalMeds medications taken today",
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 4. The List of medicine
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(medicationList) { med ->
+                MedicationCard(
+                    med = med,
+                    onToggleTaken = { isChecked ->
+                        // replace whole list
+                        medicationList = medicationList.map { currentMed ->
+                            // If this is the med we clicked, flip its 'isTaken'
+                            if (currentMed.name == med.name && currentMed.scheduledTime == med.scheduledTime) {
+                                currentMed.copy(isTaken = isChecked)
+                            } else {
+                                currentMed
+                            }
+                        }
+                    }
+                )
+            }
         }
     }
-    }
+}
 
 
 fun getPatientName(context: android.content.Context, id:String): String{
@@ -173,23 +217,33 @@ fun getMedicationsForPatient(context: Context, targetId: String): List<Medicatio
  * Reusable Card UI for each medication
  */
 @Composable
-fun MedicationCard(med: Medication) {
+fun MedicationCard(med: Medication, onToggleTaken: (Boolean) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = med.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(text = "Dosage: ${med.dosage}", style = MaterialTheme.typography.bodyMedium)
-            Text(text = "Frequency: ${med.frequency}", style = MaterialTheme.typography.bodyMedium)
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = med.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = "${med.dosage} - ${med.scheduledTime}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = "${med.frequency}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), thickness = 0.5.dp)
-
-            Text(
-                text = "Time: ${med.scheduledTime}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.secondary
-            )
+            // The "Taken" Toggle
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Taken", style = MaterialTheme.typography.labelSmall)
+                Switch(
+                    checked = med.isTaken,
+                    onCheckedChange = { onToggleTaken(it) }
+                )
+            }
         }
     }
 }
@@ -198,7 +252,8 @@ data class Medication(
     val name: String,
     val dosage: String,
     val frequency: String,
-    val scheduledTime: String
+    val scheduledTime: String,
+    var isTaken: Boolean = false // Taken or not taken
 )
 
 
