@@ -8,6 +8,7 @@ import androidx.activity.compose.R
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import com.garent.s35123656.medtrack.AddMedication
 
 class HomeScreen : ComponentActivity() {
@@ -92,7 +94,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     val totalMeds = medicationList.size
     val takenMeds = medicationList.count { it.isTaken }
 
-    // 3. The Scaffold Structure
+    // The Scaffold Structure
     Scaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
@@ -118,7 +120,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .padding(24.dp) // Your custom internal spacing
         ) {
-            // --- Header Section ---
+            // display user name
             Text(
                 text = "Hello, $patientName",
                 fontSize = 28.sp,
@@ -128,6 +130,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // display current date
             Text(
                 text = currentDate,
                 fontSize = 18.sp,
@@ -137,7 +140,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --- Summary Section ---
+            // your medication text
             Text(
                 text = "Your Medications",
                 style = MaterialTheme.typography.titleLarge,
@@ -146,47 +149,62 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "$takenMeds of $totalMeds medications taken today",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // checks if current patient have medication or not
+            if (medicationList.isEmpty()) {
+                // This shows if the CSV search returned no results for this ID
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f), // Take up the remaining space
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No medications scheduled.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                // 2. Normal View if medications exist
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "$takenMeds of $totalMeds medications taken today",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-            // --- Scrollable List Section ---
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f) // Takes up remaining space
-            ) {
-                items(medicationList) { med ->
-                    MedicationCard(
-                        med = med,
-                        onToggleTaken = { isChecked ->
-                            // Update the list state to trigger UI refresh
-                            medicationList = medicationList.map { currentMed ->
-                                if (currentMed.name == med.name && currentMed.scheduledTime == med.scheduledTime) {
-                                    currentMed.copy(isTaken = isChecked)
-                                } else {
-                                    currentMed
+                Spacer(modifier = Modifier.height(24.dp))
+
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(medicationList) { med ->
+                        MedicationCard(
+                            med = med,
+                            onToggleTaken = { isChecked ->
+                                medicationList = medicationList.map { currentMed ->
+                                    if (currentMed.name == med.name && currentMed.scheduledTime == med.scheduledTime) {
+                                        currentMed.copy(isTaken = isChecked)
+                                    } else {
+                                        currentMed
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
     }
 }
-
 
 fun getPatientName(context: android.content.Context, id:String): String{
     return try {
@@ -284,6 +302,6 @@ data class Medication(
 fun HomeScreenPreview() {
     MedTrackTheme {
         // We pass a fake ID just to see what the layout looks like
-        Home(patientId = "P1001")
+        Home(patientId = "P1003")
     }
 }
