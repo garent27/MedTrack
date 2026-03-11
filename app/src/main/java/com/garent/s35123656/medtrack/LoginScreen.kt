@@ -132,7 +132,7 @@ fun validateUserFromCsv(context: Context, phone: String, password: String): Stri
         val reader = BufferedReader(InputStreamReader(inputStream))
 
         reader.useLines { lines ->
-            lines.forEach { line ->
+            lines.drop(1).forEach { line ->
                 val tokens = line.split(",")
                 val csvId = tokens[0]
                 val csvPhone = tokens[1]

@@ -1,0 +1,6 @@
+PatientID,Category,Severity,Notes,DateTime
+P1001,Headache,7,After taking Metformin,2026-03-20 14:30
+P1001,Nausea,3,Felt dizzy before lunch,2026-03-20 11:00
+P1002,Fatigue,5,Very tired after walking,2026-03-21 09:15
+P1001,Muscle Pain,4,Lower back ache,2026-03-21 18:00
+P1002,Dizziness,8,Sudden onset while standing,2026-03-22 10:20

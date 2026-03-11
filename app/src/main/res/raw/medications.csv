@@ -1,0 +1,4 @@
+PatientID,MedicationName,Dosage,Frequency,ScheduledTime,MedicationType,Notes
+P1001,Metformin,500mg,Twice daily,08:00,Tablet,Take with food
+P1001,Amlodipine,5mg,Once daily,09:00,Capsule,For blood pressure
+P1002,Insulin,10 units,Before meals,12:00,Injection,Keep refrigerated
