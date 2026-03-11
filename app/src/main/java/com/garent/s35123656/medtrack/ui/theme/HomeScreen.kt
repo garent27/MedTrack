@@ -1,6 +1,7 @@
 package com.garent.s35123656.medtrack.ui.theme
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.R
@@ -41,10 +42,13 @@ import java.util.Calendar
 import java.util.Locale
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
+import com.garent.s35123656.medtrack.AddMedication
 
 class HomeScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,98 +74,114 @@ class HomeScreen : ComponentActivity() {
 fun Home(patientId: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
-    // var to hold patient name
-    var patientName by remember {mutableStateOf("Patient")}
+    // 1. Data State Management
+    var patientName by remember { mutableStateOf("Patient") }
+    var medicationList by remember { mutableStateOf(listOf<Medication>()) }
 
-    // Find patient name from ID from database
-    patientName = getPatientName(context, patientId)
+    // Load data once when patientId is available
+    LaunchedEffect(patientId) {
+        patientName = getPatientName(context, patientId)
+        medicationList = getMedicationsForPatient(context, patientId)
+    }
 
-
-    // set a variable for current date time
+    // 2. Calculations for UI
     val calendar = Calendar.getInstance().time
     val dateFormat = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
     val currentDate = dateFormat.format(calendar)
 
-    // init medication list and load from csv
-    var medicationList by remember { mutableStateOf(listOf<Medication>()) }
-    LaunchedEffect(patientId) {
-        medicationList = getMedicationsForPatient(context, patientId)
-    }
-
-    // init for the Summary Bar
     val totalMeds = medicationList.size
     val takenMeds = medicationList.count { it.isTaken }
 
+    // 3. The Scaffold Structure
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    // Navigates to your AddMedication Activity
+                    context.startActivity(Intent(context, AddMedication::class.java))
+                },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                // Using a larger font size for the "+" icon
+                Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            }
+        },
+        floatingActionButtonPosition = FabPosition.End // Standard bottom-right position
+    ) { innerPadding ->
 
-    // for alignment
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        // Show patients name
-        Text(
-            text = "Hello, $patientName",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Show current date
-        Text(
-            text = currentDate,
-            fontSize = 18.sp,
-            color = MaterialTheme.colorScheme.secondary,
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // your medications text
-        Text(
-            text = "Your Medications",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 3. The Summary Bar
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(8.dp)
+        // Main content layout inside the Scaffold's padding
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .padding(24.dp) // Your custom internal spacing
         ) {
+            // --- Header Section ---
             Text(
-                text = "$takenMeds of $totalMeds medications taken today",
-                modifier = Modifier.padding(16.dp),
-                style = MaterialTheme.typography.titleMedium,
+                text = "Hello, $patientName",
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.primary
             )
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // 4. The List of medicine
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(medicationList) { med ->
-                MedicationCard(
-                    med = med,
-                    onToggleTaken = { isChecked ->
-                        // replace whole list
-                        medicationList = medicationList.map { currentMed ->
-                            // If this is the med we clicked, flip its 'isTaken'
-                            if (currentMed.name == med.name && currentMed.scheduledTime == med.scheduledTime) {
-                                currentMed.copy(isTaken = isChecked)
-                            } else {
-                                currentMed
+            Text(
+                text = currentDate,
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.bodyLarge
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- Summary Section ---
+            Text(
+                text = "Your Medications",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "$takenMeds of $totalMeds medications taken today",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- Scrollable List Section ---
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f) // Takes up remaining space
+            ) {
+                items(medicationList) { med ->
+                    MedicationCard(
+                        med = med,
+                        onToggleTaken = { isChecked ->
+                            // Update the list state to trigger UI refresh
+                            medicationList = medicationList.map { currentMed ->
+                                if (currentMed.name == med.name && currentMed.scheduledTime == med.scheduledTime) {
+                                    currentMed.copy(isTaken = isChecked)
+                                } else {
+                                    currentMed
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }

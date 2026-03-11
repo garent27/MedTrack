@@ -12,6 +12,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MedTrack">
         <activity
+            android:name=".AddMedication"
+            android:exported="false"
+            android:label="@string/title_activity_add_medication"
+            android:theme="@style/Theme.MedTrack" />
+        <activity
             android:name=".ui.theme.HomeScreen"
             android:exported="false"
             android:label="@string/title_activity_home_screen"
