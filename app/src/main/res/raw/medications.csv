@@ -1,7 +1,7 @@
 PatientID,MedicationName,Dosage,Frequency,ScheduledTime,MedicationType,Notes
 P1001,Metformin,500mg,Twice daily,08:00,Tablet,Take with food
 P1001,Amlodipine,5mg,Once daily,09:00,Capsule,For blood pressure
-P1001,Metformin,50000mg,Twice daily,08:00,Tablet,Take with food
+P1001,Alzheimer,50000mg,Twice daily,08:00,Tablet,Take with food
 P1001,Amlodipine,552mg,Three daily,11:00,Capsule,For blood pressure
 P1001,Metformin,500mg,Twice daily,12:00,Tablet,Take with food
 P1001,Amlodipine,51mg,Foundrr daily,10:00,Capsule,For blood pressure

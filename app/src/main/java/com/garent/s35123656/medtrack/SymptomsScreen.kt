@@ -1,5 +1,8 @@
 package com.garent.s35123656.medtrack
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -34,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Calendar
 
 class SymptomsScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,12 +69,20 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // List of categories
+    // List of all the details in a symptom card
     val categories = listOf("Pain", "Nausea", "Dizziness", "Fatigue", "Headache", "Skin Reaction", "Other")
 
-    // State variables
+    // Flag for user opened list of symptom
     var expanded by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf(categories[0]) }
+
+    // State variables selected by user
+    var selectedCategory by remember { mutableStateOf("Select Category") }
+    var severity by remember { mutableFloatStateOf(5f)}
+    var notes by remember { mutableStateOf("")}
+
+
+    val dateTime = remember { mutableStateOf("Select Date & Time") }
+
 
     // State for the list
     var symptomList by remember { mutableStateOf(listOf<Symptom>()) }
@@ -80,141 +92,273 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
         symptomList = getSymptomsForPatient(context, patientId)
     }
 
-    // 2. The Scaffold goes here
+    // The Scaffold for the layout
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         // Use the modifier passed from the activity here
         modifier = modifier.fillMaxSize()
     ) { innerPadding -> // This 'innerPadding' contains the space occupied by the bars
-        Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(innerPadding)
-            .padding(24.dp)
-    ) {
-        Text(
-            text = "Log Symptom",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(text = "Category", style = MaterialTheme.typography.labelLarge)
-
-        // The Dropdown Container
-        Box(
+// Use LazyColumn for the WHOLE screen instead of Column
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
-        ) {
-            // This OutlinedCard acts as the "Button" to open the menu
-            OutlinedCard(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth()
+                .fillMaxSize()
+                .padding(innerPadding)
+                // Note: We use padding(horizontal) here so the scrollbar
+                // is at the edge of the screen, not 24dp away.
+                .padding(horizontal = 24.dp)
+    ) {
+        item {
+            Text(
+                text = "Log Symptom",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(text = "Category", style = MaterialTheme.typography.labelLarge)
+
+
+            // 1. The Dropdown Container
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                // This OutlinedCard acts as the "Button" to open the menu
+                OutlinedCard(
+                    onClick = { expanded = true },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = selectedCategory)
-                    Icon(
-                        painter = painterResource(id = android.R.drawable.arrow_down_float),
-                        contentDescription = null
-                    )
-                }
-            }
-
-            // The actual Menu that pops up
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.fillMaxWidth(0.8f) // Optional: adjust width
-            ) {
-                categories.forEach { category ->
-                    DropdownMenuItem(
-                        text = { Text(category) },
-                        onClick = {
-                            selectedCategory = category
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-
-        // SAVE BUTTON
-        Button(
-            onClick = {
-                // if cateogry not selected
-                Log.d("Symp Debug", "Save button clicked and selected category = $selectedCategory")
-
-                if (selectedCategory == "Select Category") {
-                    scope.launch { snackbarHostState.showSnackbar("Please select a category first!") }
-                } else {
-                    Log.d("Symp Debug", "Trying to save it now ")
-                    // save the symptom with pop up message
-                    val success = saveSymptomToCSV(context, patientId, selectedCategory)
-                    Log.d("Symp Debug", "Success value is = $success ")
-                    if (success) {
-                        scope.launch { snackbarHostState.showSnackbar("Saved: $selectedCategory") }
-                    } else {
-                        scope.launch { snackbarHostState.showSnackbar("Error saving to CSV") }
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = selectedCategory)
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.arrow_down_float),
+                            contentDescription = null
+                        )
                     }
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Save")
+
+                // The actual Menu that pops up
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth(0.8f) // Optional: adjust width
+                ) {
+                    categories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category) },
+                            onClick = {
+                                selectedCategory = category
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 2. The slider bar
+            Text(
+                "Severity: ${severity.toInt()}/10",
+                style = MaterialTheme.typography.labelLarge
+            )
+            Slider(
+                value = severity,
+                onValueChange = { severity = it },
+                valueRange = 1f..10f,
+                steps = 8, // This creates 9 intervals between 1 and 10 (total 10 positions)
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+
+            // 3. Additional text notes field
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Additional notes (Optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+
+
+            // 4. Date and time picker
+            Text(text = "Date & Time", style = MaterialTheme.typography.labelLarge)
+
+            OutlinedButton(
+                onClick = {
+                    // Trigger the chained dialogs
+                    showDateTimePicker(context) { pickedValue ->
+                        dateTime.value = pickedValue
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                if (dateTime.value == "Select Date & Time") {
+                    Text(text = "Select Date & Time")
+                } else {
+                    Text(text = "SCHEDULE: ${dateTime.value}")
+                }
+            }
+
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+
+            // SAVE BUTTON
+            Button(
+                onClick = {
+                    // if cateogry not selected
+                    Log.d(
+                        "Symp Debug",
+                        "Save button clicked and selected category = $selectedCategory"
+                    )
+
+                    val currentDateTime = dateTime.value
+                    if (selectedCategory == "Select Category") {
+                        scope.launch { snackbarHostState.showSnackbar("Please select a category!") }
+                    } else if (dateTime.value == "Select Date & Time") {
+                        scope.launch { snackbarHostState.showSnackbar("Please pick a date and time!") }
+                    }
+                    // Note: severity is 1f..10f from the slider, so it's always in range by design.
+                    else {
+                        // SUCCESS MESSAGE
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Success: symptom saved ^-^")
+                        }
+
+                        // Clear form
+                        selectedCategory = "Select Category"
+                        severity = 5f
+                        notes = ""
+                        dateTime.value = "Select Date & Time"
+
+                        Log.d("Symp Debug", "Form Cleared")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save")
+            }
         }
+        item {
             Spacer(modifier = Modifier.height(32.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
             // --- BOTTOM SECTION: Symptom History ---
-            Text("Symptom History", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Symptom History",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
+        }
 
-            if (symptomList.isEmpty()) {
+
+        if (symptomList.isEmpty()) {
+            item {
                 Text("No history found.", color = Color.Gray)
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(symptomList) { symptom ->
-                        SymptomCard(symptom)
-                    }
+            }
+        } else {
+                items(symptomList) { symptom ->
+                    SymptomCard(symptom)
                 }
             }
         }
     }
 }
 
-fun saveSymptomToCSV(context: android.content.Context, id: String, category: String): Boolean {
-    return try {
-        // get file
-        val file = File(context.filesDir, "symptoms.csv")
+@Composable
+fun TimePickerFun(mTime: MutableState<String>): TimePickerDialog {
+    // Get the current context
+    val mContext = LocalContext.current
+    // Get a calendar instance
+    val mCalendar = Calendar.getInstance()
 
-        // Open file in append mode
-        FileOutputStream(file, true).bufferedWriter().use { writer ->
-            writer.write("$id,$category,N/A,N/A,N/A")
-            writer.newLine()
-        }
+    // Get the current hour and minute
+    val mHour = mCalendar.get(Calendar.HOUR_OF_DAY)
+    val mMinute = mCalendar.get(Calendar.MINUTE)
 
-        // Write the data row with given data
-        Log.d("CSV_DEBUG", "Successfully wrote to: ${file.absolutePath}")
-        true
+    // Set the calendar's time to the current time
+    mCalendar.time = Calendar.getInstance().time
 
-    } catch (e: Exception) {
-        e.printStackTrace()
+    // Return a TimePickerDialog
+    return TimePickerDialog(
+        mContext,
+        { _, hour: Int, minute: Int ->
+            // Update the state value directly
+            // Format ensures 14:05 instead of 14:5
+            mTime.value = String.format("%02d:%02d", hour, minute)
+        },
+        mHour,
+        mMinute,
         false
-    }
+    )
 }
+
+fun showDateTimePicker(context: Context, onDateTimeSelected: (String) -> Unit) {
+    val calendar = Calendar.getInstance()
+
+    // 1. Create the Date Picker
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            val datePart = String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+
+            // 2. IMMEDIATELY create and show the Time Picker after date is picked
+            TimePickerDialog(
+                context,
+                { _, hour, minute ->
+                    val timePart = String.format("%02d:%02d", hour, minute)
+                    // 3. Send the final combined string back to the UI
+                    onDateTimeSelected("$datePart $timePart")
+                },
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                false
+            ).show()
+
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    datePickerDialog.show()
+}
+
+//fun saveSymptomToCSV(context: android.content.Context, id: String, category: String): Boolean {
+//    return try {
+//        // get file
+//        val file = File(context.filesDir, "symptoms.csv")
+//
+//        // Open file in append mode
+//        FileOutputStream(file, true).bufferedWriter().use { writer ->
+//            writer.write("$id,$category,N/A,N/A,N/A")
+//            writer.newLine()
+//        }
+//
+//        // Write the data row with given data
+//        Log.d("CSV_DEBUG", "Successfully wrote to: ${file.absolutePath}")
+//        true
+//
+//    } catch (e: Exception) {
+//        e.printStackTrace()
+//        false
+//    }
+//}
 
 
 data class Symptom(
@@ -228,15 +372,16 @@ data class Symptom(
 // Getting symptoms from csv file
 fun getSymptomsForPatient(context: android.content.Context, targetId: String): List<Symptom> {
     val list = mutableListOf<Symptom>()
-    val file = File(context.filesDir, "symptoms.csv")
-
-    if (!file.exists()) return list
-
     try {
+        //read file
+        val file = context.resources.openRawResource(R.raw.symptoms)
+
+
         file.bufferedReader().useLines { lines ->
+
             lines.drop(1).forEach { line ->
+                // split by comma
                 val tokens = line.split(",")
-                // tokens: 0=ID, 1=Category, 2=Severity, 3=Notes, 4=DateTime
                 if (tokens.size >= 5 && tokens[0].trim() == targetId) {
                     list.add(Symptom(
                         category = tokens[1].trim(),
@@ -248,6 +393,7 @@ fun getSymptomsForPatient(context: android.content.Context, targetId: String): L
             }
         }
     } catch (e: Exception) { e.printStackTrace() }
+
     // Sort by date: reverse the list so the newest symptom is at the top
     return list.reversed()
 }
