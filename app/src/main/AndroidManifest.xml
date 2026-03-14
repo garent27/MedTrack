@@ -22,7 +22,7 @@
             android:label="@string/title_activity_add_medication"
             android:theme="@style/Theme.MedTrack" />
         <activity
-            android:name=".ui.theme.HomeScreen"
+            android:name=".HomeScreen"
             android:exported="false"
             android:label="@string/title_activity_home_screen"
             android:theme="@style/Theme.MedTrack" />

@@ -1,5 +1,6 @@
 package com.garent.s35123656.medtrack
 
+import android.annotation.SuppressLint
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
@@ -41,16 +42,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.garent.s35123656.medtrack.ui.theme.HomeScreen
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
+import com.google.gson.reflect.TypeToken
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import androidx.core.content.edit
 
 class AddMedication : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val patientId = intent.getStringExtra("PATIENT_ID") ?: ""
+
         setContent {
             MedTrackTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -93,14 +97,15 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
     // Track if the user has clicked "Save" to trigger error visibility
     var showErrors by remember { mutableStateOf(false) }
 
-    // --- Validation Logic ---
+    // Validation Logic
     val dosageRegex = Regex("""^\d+(\.\d+)?(mg|ml|g)$""")
     val isNameValid = medName.isNotBlank()
     val isDosageValid = dosageRegex.matches(dosage.trim())
     val isTimeValid = timeState.value.isNotBlank()
 
 
-
+    // Shared preference gson
+    val gson = Gson()
 
     // MAIN SCAFFOLD
     Scaffold(
@@ -281,8 +286,48 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                     Button(
                         onClick = {
                             if (isNameValid && isDosageValid && isTimeValid) {
+
+                                // 1. Initialize SharedPreferences
+                                val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
+
+                                // 2. Create the Medication object using your specific fields
+                                val newMedication = MedicationData(
+                                    medPetientID = patientId,
+                                    medicationName = medName,
+                                    dosage = dosage,
+                                    frequency = selectedFreq,
+                                    scheduledTime = timeState.value,
+                                    medicationType = selectedType,
+                                    notes = notes
+                                )
+
+                                // 3. Retrieve existing list for this patient
+                                val existingJson = sharedPref.getString(patientId, null)
+                                val listType = object : TypeToken<MutableList<MedicationData>>() {}.type
+
+                                val medicationList: MutableList<MedicationData> = if (existingJson == null) {
+                                    mutableListOf()
+                                } else {
+                                    gson.fromJson(existingJson, listType)
+                                }
+
+                                // 4. Add the new entry and save back to SP
+                                medicationList.add(newMedication)
+                                val updatedJson = gson.toJson(medicationList)
+
+                                sharedPref.edit {
+                                    putString(patientId, updatedJson)
+                                }
+
+
                                 scope.launch { snackbarHostState.showSnackbar("Success: Medication Added") }
                                 clearFields()
+
+                                // route back to home page
+                                val intent = Intent(context, HomeScreen::class.java)
+                                intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+                                context.startActivity(intent)
+
                             } else {
                                 showErrors = true // Show all red messages
                                 scope.launch { snackbarHostState.showSnackbar("Please fix errors above") }
@@ -303,6 +348,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                 }
             }
 
+            // back button
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -310,6 +356,13 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                 ) {
                     OutlinedButton(
                         onClick = {
+                            // for checking
+                            val checkData = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
+                                .getString(patientId, "Nothing found")
+
+                            android.util.Log.d("SAVED_DATA", "Stored JSON: $checkData")
+
+
                             val intent = Intent(context, HomeScreen::class.java)
                             intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
                             context.startActivity(intent)
@@ -326,6 +379,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
     }
 }
 
+@SuppressLint("DefaultLocale")
 fun showTimePicker(mContext: Context, mTime: MutableState<String>) {
     val mCalendar = Calendar.getInstance()
     val mHour = mCalendar.get(Calendar.HOUR_OF_DAY)
@@ -344,6 +398,16 @@ fun showTimePicker(mContext: Context, mTime: MutableState<String>) {
 
     mTimePickerDialog.show()
 }
+
+//data class MedicationFull(
+//    val PatientID: String,
+//    val MedicationName: String,
+//    val Dosage: String,
+//    val Frequency: String,
+//    val ScheduledTime: String,
+//    val MedicationType: String,
+//    val Notes: String
+//)
 
 // FOR PREVIEW ONLYYY
 @Preview(showBackground = true, showSystemUi = true)

@@ -1,16 +1,14 @@
-package com.garent.s35123656.medtrack.ui.theme
+package com.garent.s35123656.medtrack
 
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.R
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.garent.s35123656.medtrack.ui.theme.ui.theme.MedTrackTheme
+import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
@@ -43,7 +40,6 @@ import java.util.Calendar
 import java.util.Locale
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,18 +50,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
-import com.garent.s35123656.medtrack.AddMedication
-import com.garent.s35123656.medtrack.SymptomsScreen
+import com.google.gson.reflect.TypeToken
+import com.google.gson.Gson
 import kotlin.jvm.java
 
 
-// for navigation to different screen
-sealed class Screen(val label: String, val iconId: Int) {
-    object Home : Screen("Home", android.R.drawable.ic_menu_today)
-    object Symptoms : Screen("Symptoms", android.R.drawable.ic_dialog_alert)
-}
 
 class HomeScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,8 +82,8 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     // 1. Data State Management
-    var patientName by remember { mutableStateOf("Patient") }
-    var medicationList by remember { mutableStateOf(listOf<Medication>()) }
+    var patientName by remember { mutableStateOf("Unknown User") }
+    var medicationList by remember { mutableStateOf(listOf<MedicationData>()) }
 
     // Load data once when patientId is available
     LaunchedEffect(patientId) {
@@ -115,8 +105,10 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    // Navigates to your AddMedication Activity
-                    context.startActivity(Intent(context, AddMedication::class.java))
+                    // Navigates to your AddMedication Activity with patient id
+                    val intent = Intent(context, AddMedication::class.java)
+                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+                    context.startActivity(intent)
                 },
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -135,7 +127,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .padding(24.dp) // Your custom internal spacing
         ) {
-            // display user name
+            // display username
             Text(
                 text = "Hello, $patientName",
                 fontSize = 28.sp,
@@ -181,7 +173,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
                     )
                 }
             } else {
-                // 2. Normal View if medications exist
+                // Normal View if medications exist
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primaryContainer,
@@ -206,7 +198,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
                             med = med,
                             onToggleTaken = { isChecked ->
                                 medicationList = medicationList.map { currentMed ->
-                                    if (currentMed.name == med.name && currentMed.scheduledTime == med.scheduledTime) {
+                                    if (currentMed.medicationName == med.medicationName && currentMed.scheduledTime == med.scheduledTime) {
                                         currentMed.copy(isTaken = isChecked)
                                     } else {
                                         currentMed
@@ -221,9 +213,9 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     }
 }
 
-fun getPatientName(context: android.content.Context, id:String): String{
+fun getPatientName(context: Context, id:String): String{
     return try {
-        val inputStream = context.resources.openRawResource(com.garent.s35123656.medtrack.R.raw.patients)
+        val inputStream = context.resources.openRawResource(R.raw.patients)
         val reader = BufferedReader(InputStreamReader(inputStream))
         var nameFound = "Patient"
 
@@ -245,32 +237,52 @@ fun getPatientName(context: android.content.Context, id:String): String{
 /**
  * Retrieves the medication list and filters it by PatientID
  */
-fun getMedicationsForPatient(context: Context, targetId: String): List<Medication> {
-    val meds = mutableListOf<Medication>()
+fun getMedicationsForPatient(context: Context, targetId: String): List<MedicationData> {
+
+    // 1. Load from SharedPreferences (Gson)
+    val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
+    val gson = Gson()
+    val json = sharedPref.getString(targetId, null)
+
+    val sharedPrefMeds = if (json != null) {
+        val type = object : TypeToken<List<MedicationData>>() {}.type
+        gson.fromJson<List<MedicationData>>(json, type) ?: emptyList()
+    } else {
+        emptyList()
+    }
+
+
+    // 2. Load from CSV (Raw Resource)
+    val csvMeds = mutableListOf<MedicationData>()
     try {
-        context.resources.openRawResource(com.garent.s35123656.medtrack.R.raw.medications).bufferedReader().useLines { lines ->
+        context.resources.openRawResource(R.raw.medications).bufferedReader().useLines { lines ->
             lines.drop(1).forEach { line ->
                 val tokens = line.split(",")
                 // tokens[0] is PatientID, tokens[1] is MedName, etc.
                 if (tokens.size >= 5 && tokens[0].trim() == targetId) {
-                    meds.add(Medication(
-                        name = tokens[1].trim(),
+                    csvMeds.add(MedicationData(
+                        medPetientID = tokens[0].trim(),
+                        medicationName = tokens[1].trim(),
                         dosage = tokens[2].trim(),
                         frequency = tokens[3].trim(),
-                        scheduledTime = tokens[4].trim()
+                        scheduledTime = tokens[4].trim(),
+                        medicationType = tokens.getOrNull(5)?.trim() ?: "Unknown",
+                        notes = tokens.getOrNull(6)?.trim() ?: ""
                     ))
                 }
             }
         }
     } catch (e: Exception) { e.printStackTrace() }
-    return meds
+
+    // return the combine reversed so newest is first
+    return sharedPrefMeds.reversed() + csvMeds.reversed()
 }
 
 /**
  * Reusable Card UI for each medication
  */
 @Composable
-fun MedicationCard(med: Medication, onToggleTaken: (Boolean) -> Unit) {
+fun MedicationCard(med: MedicationData, onToggleTaken: (Boolean) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -280,7 +292,11 @@ fun MedicationCard(med: Medication, onToggleTaken: (Boolean) -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = med.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = med.medicationName ?: "Unknown Medication",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
                 Text(text = "${med.dosage} - ${med.scheduledTime}", style = MaterialTheme.typography.bodySmall)
                 Text(
                     text = "${med.frequency}",
@@ -301,18 +317,21 @@ fun MedicationCard(med: Medication, onToggleTaken: (Boolean) -> Unit) {
     }
 }
 
-data class Medication(
-    val name: String,
-    val dosage: String,
-    val frequency: String,
-    val scheduledTime: String,
-    var isTaken: Boolean = false // Taken or not taken
+data class MedicationData(
+    val medPetientID: String? = "",
+    val medicationName: String? = "Unknown",
+    val dosage: String? = "",
+    val frequency: String? = "",
+    val scheduledTime: String? = "",
+    val medicationType: String? = "",
+    val notes: String? = "",
+    var isTaken: Boolean = false
 )
 
 
 
 @Composable
-fun MedTrackBottomBar(currentScreen: String, patientId: String) {
+fun MedTrackBottomBar(currentScreen: String, petientID: String) {
     val context = LocalContext.current
     NavigationBar {
         // Home Tab
@@ -322,7 +341,7 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
                 // goes to home page if it's currently not
                 if (currentScreen != "Home") {
                     val intent = Intent(context, HomeScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+                    intent.putExtra("PATIENT_ID", petientID) // include patient id when passing
                     context.startActivity(intent)
                 }
             },
@@ -336,7 +355,7 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
                 // goes to symptoms page if it's currently not
                 if (currentScreen != "Symptoms") {
                     val intent = Intent(context, SymptomsScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+                    intent.putExtra("PATIENT_ID", petientID) // include patient id when passing
                     context.startActivity(intent)
                 }
             },
@@ -345,7 +364,7 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
         )
     }
 }
-// FOR PREVIEW ONLYYY
+// FOR PREVIEW ONLY
 @Preview(showBackground = true, name = "Home Screen Preview")
 @Composable
 fun HomeScreenPreview() {

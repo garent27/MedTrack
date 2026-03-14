@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.garent.s35123656.medtrack.ui.theme.HomeScreen
+import com.garent.s35123656.medtrack.HomeScreen
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 
 import androidx.compose.foundation.layout.*
@@ -424,40 +424,40 @@ fun SymptomCard(symptom: Symptom) {
     }
 }
 
-@Composable
-fun MedTrackBottomBar(currentScreen: String, patientId: String) {
-    val context = LocalContext.current
-    NavigationBar {
-        // Home Tab
-        NavigationBarItem(
-            selected = currentScreen == "Home",
-            onClick = {
-                // goes to home page if it's currently not
-                if (currentScreen != "Home") {
-                    val intent = Intent(context, HomeScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-                    context.startActivity(intent)
-                }
-            },
-            label = { Text("Home") },
-            icon = { Icon(painterResource(android.R.drawable.ic_menu_today), null) }
-        )
-        // Symptoms Tab
-        NavigationBarItem(
-            selected = currentScreen == "Symptoms",
-            onClick = {
-                // goes to symptoms page if it's currently not
-                if (currentScreen != "Symptoms") {
-                    val intent = Intent(context, SymptomsScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-                    context.startActivity(intent)
-                }
-            },
-            label = { Text("Symptoms") },
-            icon = { Icon(painterResource(android.R.drawable.ic_dialog_alert), null) }
-        )
-    }
-}
+//@Composable
+//fun MedTrackBottomBar(currentScreen: String, patientId: String) {
+//    val context = LocalContext.current
+//    NavigationBar {
+//        // Home Tab
+//        NavigationBarItem(
+//            selected = currentScreen == "Home",
+//            onClick = {
+//                // goes to home page if it's currently not
+//                if (currentScreen != "Home") {
+//                    val intent = Intent(context, HomeScreen::class.java)
+//                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+//                    context.startActivity(intent)
+//                }
+//            },
+//            label = { Text("Home") },
+//            icon = { Icon(painterResource(android.R.drawable.ic_menu_today), null) }
+//        )
+//        // Symptoms Tab
+//        NavigationBarItem(
+//            selected = currentScreen == "Symptoms",
+//            onClick = {
+//                // goes to symptoms page if it's currently not
+//                if (currentScreen != "Symptoms") {
+//                    val intent = Intent(context, SymptomsScreen::class.java)
+//                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+//                    context.startActivity(intent)
+//                }
+//            },
+//            label = { Text("Symptoms") },
+//            icon = { Icon(painterResource(android.R.drawable.ic_dialog_alert), null) }
+//        )
+//    }
+//}
 
 // FOR PREVIEW ONLYYY
 @Preview(showBackground = true, showSystemUi = true)
