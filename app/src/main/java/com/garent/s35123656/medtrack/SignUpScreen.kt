@@ -14,18 +14,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +43,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import com.google.gson.Gson
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class SignUpScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +61,7 @@ class SignUpScreen : ComponentActivity() {
 }
 
 @Composable
-fun SignUp(modifier: Modifier = Modifier){
+fun SignUp(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     // user variables
@@ -69,109 +76,133 @@ fun SignUp(modifier: Modifier = Modifier){
     var passwordError by remember { mutableStateOf<String?>(null) }
     var confirmError by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Create Account",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+    // snackbar messages
+    val scope = rememberCoroutineScope() // Required for launching the snackbar
+    val snackbarHostState = remember { SnackbarHostState() } // Manages the snackbar queue
 
-        Spacer(modifier = Modifier.height(32.dp))
 
-        // Full Name Field
-        ValidatedTextField(
-            value = fullName,
-            onValueChange = { fullName = it; nameError = null },
-            label = "Full Name",
-            error = nameError
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Phone Number Field
-        ValidatedTextField(
-            value = phone,
-            onValueChange = { phone = it; phoneError = null },
-            label = "Phone Number (starts with 04)",
-            error = phoneError,
-            keyboardType = KeyboardType.Phone
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password Field
-        ValidatedTextField(
-            value = password,
-            onValueChange = { password = it; passwordError = null },
-            label = "Password (8+ chars, letter & number)",
-            error = passwordError,
-            isPassword = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Confirm Password Field
-        ValidatedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it; confirmError = null },
-            label = "Confirm Password",
-            error = confirmError,
-            isPassword = true
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Sign Up Button
-        Button(
-            onClick = {
-                // Reset errors
-                nameError = null; phoneError = null; passwordError = null; confirmError = null
-
-                val isPhoneValid = phone.startsWith("04") && phone.length == 10
-                val isPasswordValid = password.length >= 8 &&
-                        password.any { it.isLetter() } &&
-                        password.any { it.isDigit() }
-
-                // 1. Basic Required Check
-                if (fullName.isBlank()) nameError = "Name is required"
-
-                // 2. Phone Logic
-                if (phone.isBlank()) phoneError = "Phone is required"
-                else if (!isPhoneValid) phoneError = "Must start with 04 and be 10 digits"
-                else if (!checkUniquePhone(context, phone)) phoneError = "This phone number is already registered"
-
-                // 3. Password Logic
-                if (password.isBlank()) passwordError = "Password is required"
-                else if (!isPasswordValid) passwordError = "Must be 8+ chars with a letter and a number"
-
-                // 4. Confirm Logic
-                if (confirmPassword != password) confirmError = "Passwords do not match"
-
-                // Final Validation Check
-                if (nameError == null && phoneError == null && passwordError == null && confirmError == null) {
-                    saveNewUser(context, fullName, phone, password)
-                    Toast.makeText(context, "Registration Successful!", Toast.LENGTH_SHORT).show()
-                    (context as? Activity)?.finish()
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        modifier = modifier.fillMaxSize()
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Sign Up")
-        }
+            Text(
+                text = "Create Account",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
 
-        TextButton(onClick = { (context as? Activity)?.finish() }) {
-            Text("Back to Login")
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Full Name Field
+            ValidatedTextField(
+                value = fullName,
+                onValueChange = { fullName = it; nameError = null },
+                label = "Full Name",
+                error = nameError
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Phone Number Field
+            ValidatedTextField(
+                value = phone,
+                onValueChange = { phone = it; phoneError = null },
+                label = "Phone Number (starts with 04)",
+                error = phoneError,
+                keyboardType = KeyboardType.Phone
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Password Field
+            ValidatedTextField(
+                value = password,
+                onValueChange = { password = it; passwordError = null },
+                label = "Password (8+ chars, letter & number)",
+                error = passwordError,
+                isPassword = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Confirm Password Field
+            ValidatedTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it; confirmError = null },
+                label = "Confirm Password",
+                error = confirmError,
+                isPassword = true
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Sign Up Button
+            Button(
+                onClick = {
+                    // Reset errors
+                    nameError = null; phoneError = null; passwordError = null; confirmError = null
+
+                    val isPhoneValid = phone.startsWith("04") && phone.length == 10
+                    val isPasswordValid = password.length >= 8 &&
+                            password.any { it.isLetter() } &&
+                            password.any { it.isDigit() }
+
+                    // 1. Basic Required Check
+                    if (fullName.isBlank()) nameError = "Name is required"
+
+                    // 2. Phone Logic
+                    if (phone.isBlank()) phoneError = "Phone is required"
+                    else if (!isPhoneValid) phoneError = "Must start with 04 and be 10 digits"
+                    else if (!checkUniquePhone(context, phone)) phoneError =
+                        "This phone number is already registered"
+
+                    // 3. Password Logic
+                    if (password.isBlank()) passwordError = "Password is required"
+                    else if (!isPasswordValid) passwordError =
+                        "Must be 8+ chars with a letter and a number"
+
+                    // 4. Confirm Logic
+                    if (confirmPassword != password) confirmError = "Passwords do not match"
+
+                    // Final Validation Check
+                    if (nameError == null && phoneError == null && passwordError == null && confirmError == null) {
+                        // save the user
+                        saveNewUser(context, fullName, phone, password)
+
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Account created successfully!",
+                                duration = SnackbarDuration.Short
+                            )
+                            // Wait 1.5 seconds
+                            delay(800)
+
+                            // Go back to Login
+                            (context as? Activity)?.finish()
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Sign Up")
+            }
+
+            TextButton(onClick = { (context as? Activity)?.finish() }) {
+                Text("Back to Login")
+            }
         }
     }
 }
-
 @Composable
 fun ValidatedTextField(
     value: String,
@@ -212,7 +243,7 @@ fun checkUniquePhone(context: Context, phone: String): Boolean {
     } catch (e: Exception) { e.printStackTrace() }
 
     // 2. Check SharedPreferences
-    val sharedPref = context.getSharedPreferences("registered_users", Context.MODE_PRIVATE)
+    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
     // We store users with phone as the key
     return !sharedPref.contains(phone)
 }
