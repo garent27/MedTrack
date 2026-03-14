@@ -12,6 +12,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MedTrack">
         <activity
+            android:name=".SignUpScreen"
+            android:exported="false"
+            android:label="@string/title_activity_sign_up_screen"
+            android:theme="@style/Theme.MedTrack" />
+        <activity
             android:name=".SymptomsScreen"
             android:exported="false"
             android:label="@string/title_activity_symptoms_screen"

@@ -4,4 +4,5 @@
     <string name="title_activity_home_screen">HomeScreen</string>
     <string name="title_activity_add_medication">AddMedication</string>
     <string name="title_activity_symptoms_screen">SymptomsScreen</string>
+    <string name="title_activity_sign_up_screen">SignUpScreen</string>
 </resources>

@@ -3,6 +3,7 @@ package com.garent.s35123656.medtrack
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,8 +34,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -87,7 +86,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
     // Load data once when patientId is available
     LaunchedEffect(patientId) {
-        patientName = getPatientName(context, patientId)
+        patientName = GetPatientName(context, patientId)
         medicationList = getMedicationsForPatient(context, patientId)
     }
 
@@ -213,25 +212,49 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     }
 }
 
-fun getPatientName(context: Context, id:String): String{
+//retrieve user name from csv
+private fun getNameFromCsv(context: Context, id: String): String? {
     return try {
-        val inputStream = context.resources.openRawResource(R.raw.patients)
-        val reader = BufferedReader(InputStreamReader(inputStream))
-        var nameFound = "Patient"
-
-        reader.useLines { lines ->
+        context.resources.openRawResource(R.raw.patients).bufferedReader().useLines { lines ->
             lines.forEach { line ->
                 val tokens = line.split(",")
                 if (tokens.isNotEmpty() && tokens[0].trim() == id) {
-                    nameFound = tokens[2].trim()
-                    return@useLines
+                    return@useLines tokens[2].trim()
                 }
             }
+            null
         }
-        nameFound
-    }   catch (e: Exception) {
-        "Patient??"
+    } catch (e: Exception) {
+        null
     }
+}
+
+// retrieve user name from csv + gson
+fun GetPatientName(context: Context, id: String): String {
+
+    // 1. First, try to find the name in the CSV
+    val csvName = getNameFromCsv(context, id)
+    if (csvName != null) return csvName
+
+    // 2. If not in CSV, look through SharedPreferences (JSON)
+    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
+    val gson = Gson()
+
+    // We must loop through all saved users because the key is Phone, not ID
+    val allEntries = sharedPref.all
+    for (entry in allEntries.values) {
+        try {
+            val userJson = entry.toString()
+            val user = gson.fromJson(userJson, User::class.java)
+            if (user.PatientID == id) {
+                return user.Name
+            }
+        } catch (e: Exception) {
+            continue // Skip if a specific entry is corrupted
+        }
+    }
+
+    return "Unknown Patient"
 }
 
 /**

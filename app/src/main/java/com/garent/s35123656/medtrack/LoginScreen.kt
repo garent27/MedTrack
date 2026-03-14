@@ -27,10 +27,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.garent.s35123656.medtrack.HomeScreen
+import com.google.gson.Gson
 import kotlin.jvm.java
 
 class LoginScreen : ComponentActivity() {
@@ -99,16 +101,20 @@ fun Login(modifier: Modifier = Modifier) {
         Button(
             onClick = {
                 if (phone.isBlank() || password.isBlank()) {
-                    Toast.makeText(context, "Please enter both phone and password", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "Please enter both phone and password",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
                     // Check credentials against patients.csv
-                    val patientId = validateUserFromCsv(context, phone, password)
+                    val patientId = validateAllUser(context, phone, password)
 
                     if (patientId != null) {
                         Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
 
                         // Navigate to HomeActivity
-                        context.startActivity(Intent(context, HomeScreen::class.java).apply{
+                        context.startActivity(Intent(context, HomeScreen::class.java).apply {
                             putExtra("PATIENT_ID", patientId) // Pass patient Id
                         })
                     } else {
@@ -119,6 +125,27 @@ fun Login(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Login")
+        }
+
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Don't have an account?", style = MaterialTheme.typography.bodyMedium)
+
+            TextButton(
+                onClick = {
+                    // Navigate to SignUpActivity
+                    val intent = Intent(context, SignUpScreen::class.java)
+                    context.startActivity(intent)
+                }
+            ) {
+                Text("Sign Up", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
@@ -146,5 +173,39 @@ fun validateUserFromCsv(context: Context, phone: String, password: String): Stri
         null
     } catch (e: Exception) {
         null
+    }
+}
+
+fun validateAllUser(context: Context, phone: String, password: String): String? {
+    // 1. Check CSV first
+    val csvResult = validateUserFromCsv(context, phone, password)
+    if (csvResult != null) return csvResult
+
+    // 2. If not found in CSV, check SharedPreferences
+    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
+    val userJson = sharedPref.getString(phone, null) ?: return null // User doesn't exist
+
+    return try {
+        val gson = Gson()
+        val user = gson.fromJson(userJson, User::class.java)
+
+        // Check if the password matches
+        if (user.Password == password) {
+            user.PatientID // Return the generated ID (e.g., P1004)
+        } else {
+            null // Wrong password
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
+// FOR PREVIEW ONLY
+@Preview(showBackground = true, name = "Home Screen Preview")
+@Composable
+fun LoginScreenPrev() {
+    MedTrackTheme {
+        // We pass a fake ID just to see what the layout looks like
+        Login()
     }
 }

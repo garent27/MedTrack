@@ -356,7 +356,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                 ) {
                     OutlinedButton(
                         onClick = {
-                            // for checking
+                            // =========!!!!!!!!!!!! SHARED PREFEENCE DATA CHECK !!!!!!====
                             val checkData = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
                                 .getString(patientId, "Nothing found")
 
