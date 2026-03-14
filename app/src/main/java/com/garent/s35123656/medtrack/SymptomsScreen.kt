@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Calendar
 
 class SymptomsScreen : ComponentActivity() {
@@ -430,9 +432,10 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
         NavigationBarItem(
             selected = currentScreen == "Home",
             onClick = {
+                // goes to home page if it's currently not
                 if (currentScreen != "Home") {
                     val intent = Intent(context, HomeScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // <--- CRITICAL
+                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
                     context.startActivity(intent)
                 }
             },
@@ -443,9 +446,10 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
         NavigationBarItem(
             selected = currentScreen == "Symptoms",
             onClick = {
+                // goes to symptoms page if it's currently not
                 if (currentScreen != "Symptoms") {
                     val intent = Intent(context, SymptomsScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // <--- CRITICAL
+                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
                     context.startActivity(intent)
                 }
             },

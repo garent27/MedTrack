@@ -319,9 +319,10 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
         NavigationBarItem(
             selected = currentScreen == "Home",
             onClick = {
+                // goes to home page if it's currently not
                 if (currentScreen != "Home") {
                     val intent = Intent(context, HomeScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // <--- CRITICAL
+                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
                     context.startActivity(intent)
                 }
             },
@@ -332,9 +333,10 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
         NavigationBarItem(
             selected = currentScreen == "Symptoms",
             onClick = {
+                // goes to symptoms page if it's currently not
                 if (currentScreen != "Symptoms") {
                     val intent = Intent(context, SymptomsScreen::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // <--- CRITICAL
+                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
                     context.startActivity(intent)
                 }
             },
@@ -343,7 +345,6 @@ fun MedTrackBottomBar(currentScreen: String, patientId: String) {
         )
     }
 }
-
 // FOR PREVIEW ONLYYY
 @Preview(showBackground = true, name = "Home Screen Preview")
 @Composable
