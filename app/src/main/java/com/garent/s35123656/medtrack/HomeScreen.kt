@@ -39,17 +39,22 @@ import java.util.Calendar
 import java.util.Locale
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextDecoration
 import com.google.gson.reflect.TypeToken
 import com.google.gson.Gson
 import kotlin.jvm.java
@@ -76,6 +81,7 @@ class HomeScreen : ComponentActivity() {
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Home(patientId: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -101,6 +107,32 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     // The Scaffold Structure
     Scaffold(
         modifier = modifier.fillMaxSize(),
+
+        // bar for log out
+        topBar = {
+            TopAppBar(
+                title = { Text("MedTrack", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = {
+                        // LOGOUT LOGIC
+                        // a. Clear the session from SharedPreferences
+                        val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                        sharedPref.edit().remove("logged_in_id").apply()
+
+                        // b. Navigate back to Welcome/Login and CLEAR the backstack
+                        val intent = Intent(context, MainActivity::class.java)
+                        // This flag ensures the user can't press 'Back' to return to Home
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        context.startActivity(intent)
+
+                    }) {
+                        Text("LOGOUT", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            )
+        },
+
+
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
@@ -306,9 +338,17 @@ fun getMedicationsForPatient(context: Context, targetId: String): List<Medicatio
  */
 @Composable
 fun MedicationCard(med: MedicationData, onToggleTaken: (Boolean) -> Unit) {
+    // 1. Define visual states based on med.isTaken
+    val cardAlpha = if (med.isTaken) 0.6f else 1f
+    val textDecoration = if (med.isTaken) TextDecoration.LineThrough else TextDecoration.None
+    val cardElevation = if (med.isTaken) 0.dp else 2.dp
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .alpha(cardAlpha), // 2. Greys out the entire card
+        elevation = CardDefaults.cardElevation(defaultElevation = cardElevation)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -317,14 +357,20 @@ fun MedicationCard(med: MedicationData, onToggleTaken: (Boolean) -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = med.medicationName ?: "Unknown Medication",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        textDecoration = textDecoration // 3. Applies Strikethrough
+                    ),
                     fontWeight = FontWeight.Bold
                 )
-                Text(text = "${med.dosage} - ${med.scheduledTime}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = "${med.dosage} - ${med.scheduledTime}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (med.isTaken) Color.Gray else Color.Unspecified
+                )
                 Text(
                     text = "${med.frequency}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = if (med.isTaken) Color.Gray else MaterialTheme.colorScheme.secondary
                 )
             }
 
@@ -339,7 +385,6 @@ fun MedicationCard(med: MedicationData, onToggleTaken: (Boolean) -> Unit) {
         }
     }
 }
-
 data class MedicationData(
     val medPetientID: String? = "",
     val medicationName: String? = "Unknown",

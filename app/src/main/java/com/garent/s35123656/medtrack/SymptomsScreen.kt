@@ -3,18 +3,16 @@ package com.garent.s35123656.medtrack
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,12 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.garent.s35123656.medtrack.HomeScreen
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,8 +33,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
 import java.util.Calendar
 
 class SymptomsScreen : ComponentActivity() {
@@ -166,18 +162,40 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
+
+
             // 2. The slider bar
+
+            //slider colors
+            val sliderColor = when {
+                severity < 4f -> Color(0xFF4CAF50) // Green (Mild)
+                severity < 7f -> Color(0xFFFFC107) // Amber (Moderate)
+                else -> Color(0xFFF44336)          // Red (Severe)
+            }
+
+
             Text(
                 "Severity: ${severity.toInt()}/10",
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
+                color = sliderColor, // Optional: make the text color match!
+                fontWeight = FontWeight.Bold
             )
+
             Slider(
                 value = severity,
                 onValueChange = { severity = it },
                 valueRange = 1f..10f,
-                steps = 8, // This creates 9 intervals between 1 and 10 (total 10 positions)
-                modifier = Modifier.fillMaxWidth()
+                steps = 8,
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = sliderColor,          // The circle handle
+                    activeTrackColor = sliderColor,    // The line to the left of the thumb
+                    activeTickColor = Color.Transparent, // Optional: hide tick marks for cleaner look
+                    inactiveTrackColor = sliderColor.copy(alpha = 0.24f) // Faded version of the color
+                )
             )
+
+
             Spacer(modifier = Modifier.height(24.dp))
 
 
@@ -228,7 +246,7 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
                     if (selectedCategory == "Select Category") {
                         scope.launch { snackbarHostState.showSnackbar("Please select a category!") }
                     } else if (dateTime.value == "Select Date & Time") {
-                        scope.launch { snackbarHostState.showSnackbar("Please pick a date and time!") }
+                        scope.launch { snackbarHostState.showSnackbar("when did this symptom occur?") }
                     }
                     // Note: severity is 1f..10f from the slider, so it's always in range by design.
                     else {
@@ -251,12 +269,13 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
                 Text("Save")
             }
         }
+
+        // ============= BOTTOM SECTION: Symptom History =================
         item {
             Spacer(modifier = Modifier.height(32.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- BOTTOM SECTION: Symptom History ---
             Text(
                 "Symptom History",
                 style = MaterialTheme.typography.titleLarge,
@@ -394,8 +413,11 @@ fun getSymptomsForPatient(context: android.content.Context, targetId: String): L
         }
     } catch (e: Exception) { e.printStackTrace() }
 
-    // Sort by date: reverse the list so the newest symptom is at the top
+    // Sort by newest added
     return list.reversed()
+
+    // Sort by date
+    //return list.sortedByDescending { it.dateTime }
 }
 
 
@@ -403,6 +425,17 @@ fun getSymptomsForPatient(context: android.content.Context, targetId: String): L
 // The Card to hold symtomp detailo
 @Composable
 fun SymptomCard(symptom: Symptom) {
+    // Convert string severity to Int (default to 0 if parsing fails)
+    val sevValue = symptom.severity.toIntOrNull() ?: 0
+
+    // Determine color and label based on the rules provided
+    val (label, statusColor) = when (sevValue) {
+        in 1..3 -> "Mild" to Color(0xFF4CAF50)      // Green
+        in 4..6 -> "Moderate" to Color(0xFFFFC107)  // Amber/Yellow
+        in 7..10 -> "Severe" to Color(0xFFF44336)   // Red
+        else -> "Unknown" to Color.Gray
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -410,15 +443,44 @@ fun SymptomCard(symptom: Symptom) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = symptom.category, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(text = "Sev: ${symptom.severity}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = symptom.category,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Color-coded Severity Label
+                Surface(
+                    color = statusColor.copy(alpha = 0.1f), // Light background
+                    shape = RoundedCornerShape(4.dp),
+                    border = BorderStroke(1.dp, statusColor) // Solid border
+                ) {
+                    Text(
+                        text = "$label ($sevValue)",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = statusColor,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
-            Text(text = symptom.dateTime, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+
+            Text(
+                text = symptom.dateTime,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray
+            )
+
             if (symptom.notes != "N/A" && symptom.notes.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = symptom.notes, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    text = symptom.notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.garent.s35123656.medtrack
 
+import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -112,6 +113,18 @@ fun Login(modifier: Modifier = Modifier) {
 
                     if (patientId != null) {
                         Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+
+                        // save id log in in shared preference validatae successful
+                        if (patientId != null) {
+                            val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                            sharedPref.edit().putString("logged_in_id", patientId).apply()
+
+                            context.startActivity(Intent(context, HomeScreen::class.java).apply {
+                                putExtra("PATIENT_ID", patientId)
+                            })
+                            // kill current screen
+                            (context as Activity).finish()
+                        }
 
                         // Navigate to HomeActivity
                         context.startActivity(Intent(context, HomeScreen::class.java).apply {

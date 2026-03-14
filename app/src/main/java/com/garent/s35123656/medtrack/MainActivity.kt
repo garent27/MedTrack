@@ -1,5 +1,6 @@
 package com.garent.s35123656.medtrack
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -36,11 +37,26 @@ import kotlin.jvm.java
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MedTrackTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    WelcomeScreen(modifier = Modifier.padding(innerPadding))
+
+        // init variable for checking Session Persistence & Navigation Guard
+        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val savedId = sharedPref.getString("logged_in_id", null)
+
+        // if user log in exist
+        if (savedId != null) {
+            // Session exists! Skip Login and go to Home
+            val intent = Intent(this, HomeScreen::class.java).apply {
+                putExtra("PATIENT_ID", savedId)
+            }
+            startActivity(intent)
+            finish() // Important: Destroy MainActivity so user can't "Go Back" to it
+        } else {
+            enableEdgeToEdge()
+            setContent {
+                MedTrackTheme {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        WelcomeScreen(modifier = Modifier.padding(innerPadding))
+                    }
                 }
             }
         }

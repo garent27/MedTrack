@@ -187,7 +187,7 @@ fun SignUp(modifier: Modifier = Modifier) {
                             // Wait 1.5 seconds
                             delay(800)
 
-                            // Go back to Login
+                            // kill current screen and go back login
                             (context as? Activity)?.finish()
                         }
                     }
