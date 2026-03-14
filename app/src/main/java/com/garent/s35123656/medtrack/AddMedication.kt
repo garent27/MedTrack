@@ -1,9 +1,13 @@
 package com.garent.s35123656.medtrack
 
+import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -14,9 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -24,17 +30,21 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.garent.s35123656.medtrack.ui.theme.HomeScreen
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class AddMedication : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,10 +66,12 @@ class AddMedication : ComponentActivity() {
 
 @Composable
 fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+
     // recorded variables
     var medName by remember { mutableStateOf("") }
     var dosage by remember { mutableStateOf("") }
-    var medTime by remember { mutableStateOf("") }
+    val timeState = remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
     // Dropdowns option for frequency
@@ -77,6 +89,18 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
 
     // 2. Create the scope needed to launch the snackbar (since it's an async "wait" task)
     val scope = rememberCoroutineScope()
+
+    // Track if the user has clicked "Save" to trigger error visibility
+    var showErrors by remember { mutableStateOf(false) }
+
+    // --- Validation Logic ---
+    val dosageRegex = Regex("""^\d+(\.\d+)?(mg|ml|g)$""")
+    val isNameValid = medName.isNotBlank()
+    val isDosageValid = dosageRegex.matches(dosage.trim())
+    val isTimeValid = timeState.value.isNotBlank()
+
+
+
 
     // MAIN SCAFFOLD
     Scaffold(
@@ -107,14 +131,39 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                     value = medName,
                     onValueChange = { medName = it },
                     label = { Text("Medication Name *") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+
+                    // inline validation handling
+                    isError = showErrors && !isNameValid,
+                    supportingText =  {
+                        if (showErrors && !isNameValid) {
+                            Text("Medication name is required")
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = dosage,
                     onValueChange = { dosage = it },
                     label = { Text("Dosage (e.g. 250mg) *") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+
+                    isError = showErrors && !isDosageValid,
+                    supportingText = {
+                        if (showErrors && !isDosageValid) {
+                            // Logic to switch the error message
+                            val errorMessage = if (dosage.isBlank()) {
+                                "Dosage is required"
+                            } else {
+                                "Format error: Use number + unit (e.g., 500mg, 10ml, 2g)"
+                            }
+
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 )
             }
 
@@ -141,12 +190,38 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
             }
             // --- 4. Time input ---
             item {
-                OutlinedTextField(
-                    value = medTime,
-                    onValueChange = { medTime = it },
-                    label = { Text("Time (e.g. 08:00) *") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Text(text = "Schedule Time", style = MaterialTheme.typography.labelLarge)
+
+                OutlinedButton(
+                    onClick = {
+                        // Call your function directly
+                        showTimePicker(context, timeState)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+
+                    // Visual feedback: Red border if error
+                    border = if (showErrors && !isTimeValid)
+                        BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                    else {
+                        ButtonDefaults.outlinedButtonBorder(enabled = true)
+                    }
+                ) {
+                    // Access the .value property of the MutableState
+                    Text(
+                        text = if (timeState.value.isEmpty()) "Select Time"
+                        else "SCHEDULE: ${timeState.value}"
+                    )
+                }
+                if (showErrors && !isTimeValid) {
+                    Text(
+                        text = "Please select a time",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
             }
 
             // --- 5. Medication Type Dropdown ---
@@ -182,6 +257,19 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                 )
             }
 
+            // helper to clear fields
+            val clearFields = {
+                medName = ""
+                dosage = ""
+                timeState.value = "" // Resetting the state object
+                notes = ""
+                selectedFreq = frequencies[0]
+                selectedType = medTypes[0]
+
+                showErrors = false
+            }
+
+
             // --- 7. Save and Clear button ---
             item {
                 // 1. You MUST wrap them in a Row for 'weight' to work
@@ -192,12 +280,12 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                     // SAVE BUTTON
                     Button(
                         onClick = {
-                            if (medName.isBlank() || dosage.isBlank() || medTime.isBlank()) {
-                                scope.launch { snackbarHostState.showSnackbar("Please fill in all required fields!") }
+                            if (isNameValid && isDosageValid && isTimeValid) {
+                                scope.launch { snackbarHostState.showSnackbar("Success: Medication Added") }
+                                clearFields()
                             } else {
-                                scope.launch { snackbarHostState.showSnackbar("Medication Added: $medName") }
-                                // Clear form after save
-                                medName = ""; dosage = ""; medTime = ""; notes = ""
+                                showErrors = true // Show all red messages
+                                scope.launch { snackbarHostState.showSnackbar("Please fix errors above") }
                             }
                         },
                         modifier = Modifier.weight(1f) // Takes up 50% width
@@ -206,24 +294,55 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
                     }
 
                     // CLEAR BUTTON
-                    // Using OutlinedButton makes it look distinct from the primary Save action
-                    Button(
-                        onClick = {
-                            medName = ""
-                            dosage = ""
-                            medTime = ""
-                            notes = ""
-                            selectedFreq = frequencies[0]
-                            selectedType = medTypes[0]
-                        },
-                        modifier = Modifier.weight(1f) // Takes up the other 50% width
+                    OutlinedButton(
+                        onClick = { clearFields() },
+                        modifier = Modifier.weight(1f)
                     ) {
                         Text("Clear")
                     }
                 }
             }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(context, HomeScreen::class.java)
+                            intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+                            context.startActivity(intent)
+                        } // Or popBackStack()
+                    ) {
+                        Text("Back to Home")
+                    }
+                }
+
+                // Remember your spacer so it's not touching the very edge!
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
+}
+
+fun showTimePicker(mContext: Context, mTime: MutableState<String>) {
+    val mCalendar = Calendar.getInstance()
+    val mHour = mCalendar.get(Calendar.HOUR_OF_DAY)
+    val mMinute = mCalendar.get(Calendar.MINUTE)
+
+    val mTimePickerDialog = TimePickerDialog(
+        mContext,
+        { _, hour: Int, minute: Int ->
+            // Formatting to ensure 08:05 instead of 8:5
+            mTime.value = String.format("%02d:%02d", hour, minute)
+        },
+        mHour,
+        mMinute,
+        false
+    )
+
+    mTimePickerDialog.show()
 }
 
 // FOR PREVIEW ONLYYY

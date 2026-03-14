@@ -280,33 +280,33 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-fun TimePickerFun(mTime: MutableState<String>): TimePickerDialog {
-    // Get the current context
-    val mContext = LocalContext.current
-    // Get a calendar instance
-    val mCalendar = Calendar.getInstance()
-
-    // Get the current hour and minute
-    val mHour = mCalendar.get(Calendar.HOUR_OF_DAY)
-    val mMinute = mCalendar.get(Calendar.MINUTE)
-
-    // Set the calendar's time to the current time
-    mCalendar.time = Calendar.getInstance().time
-
-    // Return a TimePickerDialog
-    return TimePickerDialog(
-        mContext,
-        { _, hour: Int, minute: Int ->
-            // Update the state value directly
-            // Format ensures 14:05 instead of 14:5
-            mTime.value = String.format("%02d:%02d", hour, minute)
-        },
-        mHour,
-        mMinute,
-        false
-    )
-}
+//@Composable
+//fun TimePickerFun(mTime: MutableState<String>): TimePickerDialog {
+//    // Get the current context
+//    val mContext = LocalContext.current
+//    // Get a calendar instance
+//    val mCalendar = Calendar.getInstance()
+//
+//    // Get the current hour and minute
+//    val mHour = mCalendar.get(Calendar.HOUR_OF_DAY)
+//    val mMinute = mCalendar.get(Calendar.MINUTE)
+//
+//    // Set the calendar's time to the current time
+//    mCalendar.time = Calendar.getInstance().time
+//
+//    // Return a TimePickerDialog
+//    return TimePickerDialog(
+//        mContext,
+//        { _, hour: Int, minute: Int ->
+//            // Update the state value directly
+//            // Format ensures 14:05 instead of 14:5
+//            mTime.value = String.format("%02d:%02d", hour, minute)
+//        },
+//        mHour,
+//        mMinute,
+//        false
+//    )
+//}
 
 fun showDateTimePicker(context: Context, onDateTimeSelected: (String) -> Unit) {
     val calendar = Calendar.getInstance()
