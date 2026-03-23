@@ -19,6 +19,7 @@ import java.io.InputStreamReader
 
 
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -32,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.garent.s35123656.medtrack.HomeScreen
 import com.google.gson.Gson
 import kotlin.jvm.java
 
@@ -114,21 +114,19 @@ fun Login(modifier: Modifier = Modifier) {
                     if (patientId != null) {
                         Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
 
-                        // save id log in in shared preference validatae successful
-                        if (patientId != null) {
-                            val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                            sharedPref.edit().putString("logged_in_id", patientId).apply()
+                        // save id log in in shared preference validate successful
+                        val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                        sharedPref.edit().putString("logged_in_id", patientId).apply()
 
-                            context.startActivity(Intent(context, HomeScreen::class.java).apply {
-                                putExtra("PATIENT_ID", patientId)
-                            })
-                            // kill current screen
-                            (context as Activity).finish()
-                        }
+                        context.startActivity(Intent(context, HomeScreen::class.java).apply {
+                            putExtra("PATIENT_ID", patientId)
+                        })
+                        // kill current screen
+                        (context as Activity).finish()
 
                         // Navigate to HomeActivity
                         context.startActivity(Intent(context, HomeScreen::class.java).apply {
-                            putExtra("PATIENT_ID", patientId) // Pass patient Id
+                            putExtra("PATIENT_ID", patientId) // Pass patient ID
                         })
                     } else {
                         Toast.makeText(context, "Invalid credentials", Toast.LENGTH_SHORT).show()
@@ -139,6 +137,7 @@ fun Login(modifier: Modifier = Modifier) {
         ) {
             Text("Login")
         }
+
 
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -185,6 +184,7 @@ fun validateUserFromCsv(context: Context, phone: String, password: String): Stri
         }
         null
     } catch (e: Exception) {
+        Log.e("Login", "${e.message}")
         null
     }
 }
@@ -209,6 +209,7 @@ fun validateAllUser(context: Context, phone: String, password: String): String? 
             null // Wrong password
         }
     } catch (e: Exception) {
+        Log.e("Login", "${e.message}")
         null
     }
 }

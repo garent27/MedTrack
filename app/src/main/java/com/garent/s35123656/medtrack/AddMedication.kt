@@ -57,10 +57,16 @@ class AddMedication : ComponentActivity() {
 
         setContent {
             MedTrackTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                val snackbarHostState = remember { SnackbarHostState() }
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    snackbarHost = {SnackbarHost(snackbarHostState)}
+                ) { innerPadding ->
                     AddMedication(
                         patientId = patientId,
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        snackbarHostState = snackbarHostState
                     )
                 }
             }
@@ -69,7 +75,7 @@ class AddMedication : ComponentActivity() {
 }
 
 @Composable
-fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
+fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState) {
     val context = LocalContext.current
 
     // recorded variables
@@ -88,10 +94,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
     var typeExpanded by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf(medTypes[0]) }
 
-    // 1. Create the state that manages the snackbar
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    // 2. Create the scope needed to launch the snackbar (since it's an async "wait" task)
+    // Create the scope needed to launch the snackbar (since it's an async "wait" task)
     val scope = rememberCoroutineScope()
 
     // Track if the user has clicked "Save" to trigger error visibility
@@ -108,276 +111,272 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier) {
     val gson = Gson()
 
     // MAIN SCAFFOLD
-    Scaffold(
-        snackbarHost = { (SnackbarHost(snackbarHostState)) },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
+
         // for maybe future horizontal screen integration purpose
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // --- 1. Page header title ---
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // --- 1. Page header title ---
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                "Add Medication",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // --- 2. Medication Name and Dosage Text input  ---
+        item {
+            OutlinedTextField(
+                value = medName,
+                onValueChange = { medName = it },
+                label = { Text("Medication Name *") },
+                modifier = Modifier.fillMaxWidth(),
+
+                // inline validation handling
+                isError = showErrors && !isNameValid,
+                supportingText =  {
+                    if (showErrors && !isNameValid) {
+                        Text("Medication name is required")
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = dosage,
+                onValueChange = { dosage = it },
+                label = { Text("Dosage (e.g. 250mg) *") },
+                modifier = Modifier.fillMaxWidth(),
+
+                isError = showErrors && !isDosageValid,
+                supportingText = {
+                    if (showErrors && !isDosageValid) {
+                        // Logic to switch the error message
+                        val errorMessage = if (dosage.isBlank()) {
+                            "Dosage is required"
+                        } else {
+                            "Format error: Use number + unit (e.g., 500mg, 10ml, 2g)"
+                        }
+
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            )
+        }
+
+        // --- 3. Frequency Dropdown Option ---
+        item {
+            Text("Frequency", style = MaterialTheme.typography.labelLarge)
+            Box {
+                OutlinedCard(
+                    onClick = { freqExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(selectedFreq, modifier = Modifier.padding(16.dp))
+                }
+                DropdownMenu(
+                    expanded = freqExpanded,
+                    onDismissRequest = { freqExpanded = false }) {
+                    frequencies.forEach { f ->
+                        DropdownMenuItem(
+                            text = { Text(f) },
+                            onClick = { selectedFreq = f; freqExpanded = false })
+                    }
+                }
+            }
+        }
+        // --- 4. Time input ---
+        item {
+            Text(text = "Schedule Time", style = MaterialTheme.typography.labelLarge)
+
+            OutlinedButton(
+                onClick = {
+                    // Call your function directly
+                    showTimePicker(context, timeState)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+
+                // Visual feedback: Red border if error
+                border = if (showErrors && !isTimeValid)
+                    BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                else {
+                    ButtonDefaults.outlinedButtonBorder(enabled = true)
+                }
+            ) {
+                // Access the .value property of the MutableState
                 Text(
-                    "Add Medication",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
+                    text = if (timeState.value.isEmpty()) "Select Time"
+                    else "SCHEDULE: ${timeState.value}"
                 )
             }
-
-            // --- 2. Medication Name and Dosage Text input  ---
-            item {
-                OutlinedTextField(
-                    value = medName,
-                    onValueChange = { medName = it },
-                    label = { Text("Medication Name *") },
-                    modifier = Modifier.fillMaxWidth(),
-
-                    // inline validation handling
-                    isError = showErrors && !isNameValid,
-                    supportingText =  {
-                        if (showErrors && !isNameValid) {
-                            Text("Medication name is required")
-                        }
-                    }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = dosage,
-                    onValueChange = { dosage = it },
-                    label = { Text("Dosage (e.g. 250mg) *") },
-                    modifier = Modifier.fillMaxWidth(),
-
-                    isError = showErrors && !isDosageValid,
-                    supportingText = {
-                        if (showErrors && !isDosageValid) {
-                            // Logic to switch the error message
-                            val errorMessage = if (dosage.isBlank()) {
-                                "Dosage is required"
-                            } else {
-                                "Format error: Use number + unit (e.g., 500mg, 10ml, 2g)"
-                            }
-
-                            Text(
-                                text = errorMessage,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
+            if (showErrors && !isTimeValid) {
+                Text(
+                    text = "Please select a time",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                 )
             }
+        }
 
-            // --- 3. Frequency Dropdown Option ---
-            item {
-                Text("Frequency", style = MaterialTheme.typography.labelLarge)
-                Box {
-                    OutlinedCard(
-                        onClick = { freqExpanded = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(selectedFreq, modifier = Modifier.padding(16.dp))
-                    }
-                    DropdownMenu(
-                        expanded = freqExpanded,
-                        onDismissRequest = { freqExpanded = false }) {
-                        frequencies.forEach { f ->
-                            DropdownMenuItem(
-                                text = { Text(f) },
-                                onClick = { selectedFreq = f; freqExpanded = false })
-                        }
+        // --- 5. Medication Type Dropdown ---
+        item {
+            Text("Medication Type", style = MaterialTheme.typography.labelLarge)
+            Box {
+                OutlinedCard(
+                    onClick = { typeExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(selectedType, modifier = Modifier.padding(16.dp))
+                }
+                DropdownMenu(
+                    expanded = typeExpanded,
+                    onDismissRequest = { typeExpanded = false }) {
+                    medTypes.forEach { t ->
+                        DropdownMenuItem(
+                            text = { Text(t) },
+                            onClick = { selectedType = t; typeExpanded = false })
                     }
                 }
             }
-            // --- 4. Time input ---
-            item {
-                Text(text = "Schedule Time", style = MaterialTheme.typography.labelLarge)
+        }
 
-                OutlinedButton(
+        // --- 6. Optional Notes ---
+        item {
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Notes (Optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
+        }
+
+        // helper to clear fields
+        val clearFields = {
+            medName = ""
+            dosage = ""
+            timeState.value = "" // Resetting the state object
+            notes = ""
+            selectedFreq = frequencies[0]
+            selectedType = medTypes[0]
+
+            showErrors = false
+        }
+
+
+        // --- 7. Save and Clear button ---
+        item {
+            // 1. You MUST wrap them in a Row for 'weight' to work
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp) // Adds a nice gap between buttons
+            ) {
+                // SAVE BUTTON
+                Button(
                     onClick = {
-                        // Call your function directly
-                        showTimePicker(context, timeState)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        if (isNameValid && isDosageValid && isTimeValid) {
 
-                    // Visual feedback: Red border if error
-                    border = if (showErrors && !isTimeValid)
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-                    else {
-                        ButtonDefaults.outlinedButtonBorder(enabled = true)
-                    }
-                ) {
-                    // Access the .value property of the MutableState
-                    Text(
-                        text = if (timeState.value.isEmpty()) "Select Time"
-                        else "SCHEDULE: ${timeState.value}"
-                    )
-                }
-                if (showErrors && !isTimeValid) {
-                    Text(
-                        text = "Please select a time",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                    )
-                }
-            }
+                            // 1. Initialize SharedPreferences
+                            val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
 
-            // --- 5. Medication Type Dropdown ---
-            item {
-                Text("Medication Type", style = MaterialTheme.typography.labelLarge)
-                Box {
-                    OutlinedCard(
-                        onClick = { typeExpanded = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(selectedType, modifier = Modifier.padding(16.dp))
-                    }
-                    DropdownMenu(
-                        expanded = typeExpanded,
-                        onDismissRequest = { typeExpanded = false }) {
-                        medTypes.forEach { t ->
-                            DropdownMenuItem(
-                                text = { Text(t) },
-                                onClick = { selectedType = t; typeExpanded = false })
-                        }
-                    }
-                }
-            }
+                            // 2. Create the Medication object using your specific fields
+                            val newMedication = MedicationData(
+                                medPetientID = patientId,
+                                medicationName = medName,
+                                dosage = dosage,
+                                frequency = selectedFreq,
+                                scheduledTime = timeState.value,
+                                medicationType = selectedType,
+                                notes = notes
+                            )
 
-            // --- 6. Optional Notes ---
-            item {
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (Optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2
-                )
-            }
+                            // 3. Retrieve existing list for this patient
+                            val existingJson = sharedPref.getString(patientId, null)
+                            val listType = object : TypeToken<MutableList<MedicationData>>() {}.type
 
-            // helper to clear fields
-            val clearFields = {
-                medName = ""
-                dosage = ""
-                timeState.value = "" // Resetting the state object
-                notes = ""
-                selectedFreq = frequencies[0]
-                selectedType = medTypes[0]
-
-                showErrors = false
-            }
-
-
-            // --- 7. Save and Clear button ---
-            item {
-                // 1. You MUST wrap them in a Row for 'weight' to work
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp) // Adds a nice gap between buttons
-                ) {
-                    // SAVE BUTTON
-                    Button(
-                        onClick = {
-                            if (isNameValid && isDosageValid && isTimeValid) {
-
-                                // 1. Initialize SharedPreferences
-                                val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
-
-                                // 2. Create the Medication object using your specific fields
-                                val newMedication = MedicationData(
-                                    medPetientID = patientId,
-                                    medicationName = medName,
-                                    dosage = dosage,
-                                    frequency = selectedFreq,
-                                    scheduledTime = timeState.value,
-                                    medicationType = selectedType,
-                                    notes = notes
-                                )
-
-                                // 3. Retrieve existing list for this patient
-                                val existingJson = sharedPref.getString(patientId, null)
-                                val listType = object : TypeToken<MutableList<MedicationData>>() {}.type
-
-                                val medicationList: MutableList<MedicationData> = if (existingJson == null) {
-                                    mutableListOf()
-                                } else {
-                                    gson.fromJson(existingJson, listType)
-                                }
-
-                                // 4. Add the new entry and save back to SP
-                                medicationList.add(newMedication)
-                                val updatedJson = gson.toJson(medicationList)
-
-                                sharedPref.edit {
-                                    putString(patientId, updatedJson)
-                                }
-
-
-                                scope.launch { snackbarHostState.showSnackbar("Success: Medication Added") }
-                                clearFields()
-
-                                // route back to home page
-                                val intent = Intent(context, HomeScreen::class.java)
-                                intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-                                context.startActivity(intent)
-
+                            val medicationList: MutableList<MedicationData> = if (existingJson == null) {
+                                mutableListOf()
                             } else {
-                                showErrors = true // Show all red messages
-                                scope.launch { snackbarHostState.showSnackbar("Please fix errors above") }
+                                gson.fromJson(existingJson, listType)
                             }
-                        },
-                        modifier = Modifier.weight(1f) // Takes up 50% width
-                    ) {
-                        Text("Save")
-                    }
 
-                    // CLEAR BUTTON
-                    OutlinedButton(
-                        onClick = { clearFields() },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Clear")
-                    }
-                }
-            }
+                            // 4. Add the new entry and save back to SP
+                            medicationList.add(newMedication)
+                            val updatedJson = gson.toJson(medicationList)
 
-            // back button
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            // =========!!!!!!!!!!!! SHARED PREFEENCE DATA CHECK !!!!!!====
-                            val checkData = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
-                                .getString(patientId, "Nothing found")
-
-                            android.util.Log.d("SAVED_DATA", "Stored JSON: $checkData")
+                            sharedPref.edit {
+                                putString(patientId, updatedJson)
+                            }
 
 
+                            scope.launch { snackbarHostState.showSnackbar("Success: Medication Added") }
+                            clearFields()
+
+                            // route back to home page
                             val intent = Intent(context, HomeScreen::class.java)
                             intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
                             context.startActivity(intent)
-                        } // Or popBackStack()
-                    ) {
-                        Text("Back to Home")
-                    }
+
+                        } else {
+                            showErrors = true // Show all red messages
+                            scope.launch { snackbarHostState.showSnackbar("Please fix errors above") }
+                        }
+                    },
+                    modifier = Modifier.weight(1f) // Takes up 50% width
+                ) {
+                    Text("Save")
                 }
 
-                // Remember your spacer so it's not touching the very edge!
-                Spacer(modifier = Modifier.height(32.dp))
+                // CLEAR BUTTON
+                OutlinedButton(
+                    onClick = { clearFields() },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Clear")
+                }
             }
+        }
+
+        // back button
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        // =========!!!!!!!!!!!! SHARED PREFEENCE DATA CHECK !!!!!!====
+                        val checkData = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
+                            .getString(patientId, "Nothing found")
+
+                        android.util.Log.d("SAVED_DATA", "Stored JSON: $checkData")
+
+
+                        val intent = Intent(context, HomeScreen::class.java)
+                        intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
+                        context.startActivity(intent)
+                    } // Or popBackStack()
+                ) {
+                    Text("Back to Home")
+                }
+            }
+
+            // Remember your spacer so it's not touching the very edge!
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
+
 
 @SuppressLint("DefaultLocale")
 fun showTimePicker(mContext: Context, mTime: MutableState<String>) {
@@ -414,8 +413,9 @@ fun showTimePicker(mContext: Context, mTime: MutableState<String>) {
 @Composable
 fun AddMedicationPreview() {
     MedTrackTheme {
+        val dummySnackbarHostState = remember { SnackbarHostState() }
         // We pass a fake ID just to satisfy the function requirements
-        AddMedication(patientId = "P1001")
+        AddMedication(patientId = "P1001",snackbarHostState = dummySnackbarHostState)
     }
 }
 

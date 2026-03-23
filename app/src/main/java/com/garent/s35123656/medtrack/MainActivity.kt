@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
@@ -127,6 +128,17 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
             Text("Login")
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                context.startActivity(Intent(context, SignUpScreen::class.java))
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Sign Up")
+        }
+
         Spacer(modifier = Modifier.weight(1f))
 
         // Student Info (Requirement)
@@ -135,5 +147,14 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelLarge,
             color = Color.DarkGray
         )
+    }
+}
+
+@Preview(showBackground = true, name = "Home Screen Preview")
+@Composable
+fun MainPreview() {
+    MedTrackTheme {
+        // We pass a fake ID just to see what the layout looks like
+        WelcomeScreen()
     }
 }

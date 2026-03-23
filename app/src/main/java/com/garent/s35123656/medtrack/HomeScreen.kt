@@ -70,10 +70,29 @@ class HomeScreen : ComponentActivity() {
         setContent {
             MedTrackTheme {
                 Scaffold(
-                    bottomBar = { MedTrackBottomBar(currentScreen =  "Home", patientId) }
+                    // 1. Top Bar Function
+                    topBar = {
+                        MedTrackTopBar(onLogout = { performLogout(this) })
+                    },
+
+                    // 2. Floating Action Button Function
+                    floatingActionButton = {
+                        AddMedicationFAB(onClick = {
+                            val intent = Intent(this, AddMedication::class.java).apply {
+                                putExtra("PATIENT_ID", patientId)
+                            }
+                            startActivity(intent)
+                        })
+                    },
+
+                    // C. Existing Bottom Bar
+                    bottomBar = { MedTrackBottomBar(currentScreen = "Home", patientId) }
                 ) { innerPadding ->
-                    // Just call Home directly
-                    Home(patientId = patientId, modifier = Modifier.padding(innerPadding))
+                    // PASS THE PADDING TO THE CONTENT
+                    Home(
+                        patientId = patientId,
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
@@ -81,7 +100,7 @@ class HomeScreen : ComponentActivity() {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+//@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Home(patientId: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -104,145 +123,136 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     val totalMeds = medicationList.size
     val takenMeds = medicationList.count { it.isTaken }
 
-    // The Scaffold Structure
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
+    // Main column for all the content
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+        // display username
+        Text(
+            text = "Hello, $patientName",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
 
-        // bar for log out
-        topBar = {
-            TopAppBar(
-                title = { Text("MedTrack", fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = {
-                        // LOGOUT LOGIC
-                        // a. Clear the session from SharedPreferences
-                        val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                        sharedPref.edit().remove("logged_in_id").apply()
+        Spacer(modifier = Modifier.height(8.dp))
 
-                        // b. Navigate back to Welcome/Login and CLEAR the backstack
-                        val intent = Intent(context, MainActivity::class.java)
-                        // This flag ensures the user can't press 'Back' to return to Home
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        context.startActivity(intent)
+        // display current date
+        Text(
+            text = currentDate,
+            fontSize = 18.sp,
+            color = MaterialTheme.colorScheme.secondary,
+            style = MaterialTheme.typography.bodyLarge
+        )
 
-                    }) {
-                        Text("LOGOUT", color = MaterialTheme.colorScheme.error)
-                    }
-                }
-            )
-        },
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // your medication text
+        Text(
+            text = "Your Medications",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
 
 
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // Navigates to your AddMedication Activity with patient id
-                    val intent = Intent(context, AddMedication::class.java)
-                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-                    context.startActivity(intent)
-                },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        // checks if current patient have medication or not
+        if (medicationList.isEmpty()) {
+            // This shows if the CSV search returned no results for this ID
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f), // Take up the remaining space
+                contentAlignment = Alignment.Center
             ) {
-                // Using a larger font size for the "+" icon
-                Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "No medications scheduled.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Gray
+                )
             }
-        },
-        floatingActionButtonPosition = FabPosition.End // Standard bottom-right position
-    ) { innerPadding ->
+        } else {
+            // Normal View if medications exist
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "$takenMeds of $totalMeds medications taken today",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-        // Main content layout inside the Scaffold's padding
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(24.dp) // Your custom internal spacing
-        ) {
-            // display username
-            Text(
-                text = "Hello, $patientName",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Spacer(modifier = Modifier.height(24.dp))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // display current date
-            Text(
-                text = currentDate,
-                fontSize = 18.sp,
-                color = MaterialTheme.colorScheme.secondary,
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // your medication text
-            Text(
-                text = "Your Medications",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-
-            // checks if current patient have medication or not
-            if (medicationList.isEmpty()) {
-                // This shows if the CSV search returned no results for this ID
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f), // Take up the remaining space
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No medications scheduled.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Gray
-                    )
-                }
-            } else {
-                // Normal View if medications exist
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "$takenMeds of $totalMeds medications taken today",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    items(medicationList) { med ->
-                        MedicationCard(
-                            med = med,
-                            onToggleTaken = { isChecked ->
-                                medicationList = medicationList.map { currentMed ->
-                                    if (currentMed.medicationName == med.medicationName && currentMed.scheduledTime == med.scheduledTime) {
-                                        currentMed.copy(isTaken = isChecked)
-                                    } else {
-                                        currentMed
-                                    }
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                items(medicationList) { med ->
+                    MedicationCard(
+                        med = med,
+                        onToggleTaken = { isChecked ->
+                            medicationList = medicationList.map { currentMed ->
+                                if (currentMed.medicationName == med.medicationName && currentMed.scheduledTime == med.scheduledTime) {
+                                    currentMed.copy(isTaken = isChecked)
+                                } else {
+                                    currentMed
                                 }
                             }
-                        )
-                    }
+                        }
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
     }
 }
+
+
+// Top bar button for logging out
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MedTrackTopBar(onLogout: () -> Unit) {
+    TopAppBar(
+        title = { Text("MedTrack", fontWeight = FontWeight.Bold) },
+        actions = {
+            IconButton(onClick = onLogout) {
+                Text("LOGOUT", color = MaterialTheme.colorScheme.error)
+            }
+        }
+    )
+}
+
+private fun performLogout(context: Context) {
+    val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    sharedPref.edit().remove("logged_in_id").apply()
+    val intent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+    context.startActivity(intent)
+}
+
+
+@Composable
+fun AddMedicationFAB(onClick: () -> Unit) {
+    FloatingActionButton(
+        onClick = onClick,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    ) {
+        Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
 
 //retrieve user name from csv
 private fun getNameFromCsv(context: Context, id: String): String? {
@@ -438,6 +448,6 @@ fun MedTrackBottomBar(currentScreen: String, petientID: String) {
 fun HomeScreenPreview() {
     MedTrackTheme {
         // We pass a fake ID just to see what the layout looks like
-        Home(patientId = "P1003")
+        Home(patientId = "P1001")
     }
 }

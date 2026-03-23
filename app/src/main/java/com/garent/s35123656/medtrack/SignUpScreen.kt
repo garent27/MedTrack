@@ -52,16 +52,29 @@ class SignUpScreen : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MedTrackTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SignUp(modifier = Modifier.padding(innerPadding))
+                // 1. Move the SnackbarState here
+                val snackbarHostState = remember { SnackbarHostState() }
+
+                Scaffold(
+                    // 2. Attach the host here
+                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    // 3. Pass the state down so the function can still trigger messages
+                    SignUp(
+                        snackbarHostState = snackbarHostState,
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
     }
 }
-
 @Composable
-fun SignUp(modifier: Modifier = Modifier) {
+fun SignUp(
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
 
     // user variables
@@ -78,128 +91,118 @@ fun SignUp(modifier: Modifier = Modifier) {
 
     // snackbar messages
     val scope = rememberCoroutineScope() // Required for launching the snackbar
-    val snackbarHostState = remember { SnackbarHostState() } // Manages the snackbar queue
 
+    Column(
+        modifier = modifier // Use the modifier from the Activity
+            .fillMaxSize()
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Create Account",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
 
+        Spacer(modifier = Modifier.height(32.dp))
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Create Account",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+        // Full Name Field
+        ValidatedTextField(
+            value = fullName,
+            onValueChange = { fullName = it; nameError = null },
+            label = "Full Name",
+            error = nameError
+        )
 
-            Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // Full Name Field
-            ValidatedTextField(
-                value = fullName,
-                onValueChange = { fullName = it; nameError = null },
-                label = "Full Name",
-                error = nameError
-            )
+        // Phone Number Field
+        ValidatedTextField(
+            value = phone,
+            onValueChange = { phone = it; phoneError = null },
+            label = "Phone Number (starts with 04)",
+            error = phoneError,
+            keyboardType = KeyboardType.Phone
+        )
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // Phone Number Field
-            ValidatedTextField(
-                value = phone,
-                onValueChange = { phone = it; phoneError = null },
-                label = "Phone Number (starts with 04)",
-                error = phoneError,
-                keyboardType = KeyboardType.Phone
-            )
+        // Password Field
+        ValidatedTextField(
+            value = password,
+            onValueChange = { password = it; passwordError = null },
+            label = "Password (8+ chars, letter & number)",
+            error = passwordError,
+            isPassword = true
+        )
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // Password Field
-            ValidatedTextField(
-                value = password,
-                onValueChange = { password = it; passwordError = null },
-                label = "Password (8+ chars, letter & number)",
-                error = passwordError,
-                isPassword = true
-            )
+        // Confirm Password Field
+        ValidatedTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it; confirmError = null },
+            label = "Confirm Password",
+            error = confirmError,
+            isPassword = true
+        )
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-            // Confirm Password Field
-            ValidatedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it; confirmError = null },
-                label = "Confirm Password",
-                error = confirmError,
-                isPassword = true
-            )
+        // Sign Up Button
+        Button(
+            onClick = {
+                // Reset errors
+                nameError = null; phoneError = null; passwordError = null; confirmError = null
 
-            Spacer(modifier = Modifier.height(32.dp))
+                val isPhoneValid = phone.startsWith("04") && phone.length == 10
+                val isPasswordValid = password.length >= 8 &&
+                        password.any { it.isLetter() } &&
+                        password.any { it.isDigit() }
 
-            // Sign Up Button
-            Button(
-                onClick = {
-                    // Reset errors
-                    nameError = null; phoneError = null; passwordError = null; confirmError = null
+                // 1. Basic Required Check
+                if (fullName.isBlank()) nameError = "Name is required"
 
-                    val isPhoneValid = phone.startsWith("04") && phone.length == 10
-                    val isPasswordValid = password.length >= 8 &&
-                            password.any { it.isLetter() } &&
-                            password.any { it.isDigit() }
+                // 2. Phone Logic
+                if (phone.isBlank()) phoneError = "Phone is required"
+                else if (!isPhoneValid) phoneError = "Must start with 04 and be 10 digits"
+                else if (!checkUniquePhone(context, phone)) phoneError =
+                    "This phone number is already registered"
 
-                    // 1. Basic Required Check
-                    if (fullName.isBlank()) nameError = "Name is required"
+                // 3. Password Logic
+                if (password.isBlank()) passwordError = "Password is required"
+                else if (!isPasswordValid) passwordError =
+                    "Must be 8+ chars with a letter and a number"
 
-                    // 2. Phone Logic
-                    if (phone.isBlank()) phoneError = "Phone is required"
-                    else if (!isPhoneValid) phoneError = "Must start with 04 and be 10 digits"
-                    else if (!checkUniquePhone(context, phone)) phoneError =
-                        "This phone number is already registered"
+                // 4. Confirm Logic
+                if (confirmPassword != password) confirmError = "Passwords do not match"
 
-                    // 3. Password Logic
-                    if (password.isBlank()) passwordError = "Password is required"
-                    else if (!isPasswordValid) passwordError =
-                        "Must be 8+ chars with a letter and a number"
+                // Final Validation Check
+                if (nameError == null && phoneError == null && passwordError == null && confirmError == null) {
+                    // save the user
+                    saveNewUser(context, fullName, phone, password)
 
-                    // 4. Confirm Logic
-                    if (confirmPassword != password) confirmError = "Passwords do not match"
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            message = "Account created successfully! Redirecting back to login"
+                        )
 
-                    // Final Validation Check
-                    if (nameError == null && phoneError == null && passwordError == null && confirmError == null) {
-                        // save the user
-                        saveNewUser(context, fullName, phone, password)
-
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Account created successfully!",
-                                duration = SnackbarDuration.Short
-                            )
-                            // Wait 1.5 seconds
-                            delay(800)
-
-                            // kill current screen and go back login
-                            (context as? Activity)?.finish()
-                        }
+                        // kill current screen and go back login
+                        (context as? Activity)?.finish()
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Sign Up")
-            }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Sign Up")
+        }
 
-            TextButton(onClick = { (context as? Activity)?.finish() }) {
-                Text("Back to Login")
-            }
+        TextButton(onClick = { (context as? Activity)?.finish() }) {
+            Text("Back to Login")
+
         }
     }
 }
@@ -305,8 +308,11 @@ data class User(
 @Preview(showBackground = true, name = "Home Screen Preview")
 @Composable
 fun LoginScreenPrev3() {
+    // 1. Create a dummy state just for the preview
+    val dummySnackbarHostState = remember { SnackbarHostState() }
+
     MedTrackTheme {
-        // We pass a fake ID just to see what the layout looks like
-        SignUp()
+        // 2. Pass the dummy state into your function
+        SignUp(snackbarHostState = dummySnackbarHostState)
     }
 }

@@ -39,17 +39,25 @@ class SymptomsScreen : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // init patient ID
         val patientId = intent.getStringExtra("PATIENT_ID") ?: ""
+
 
         setContent {
             MedTrackTheme {
+
+                val snackbarHostState = remember { SnackbarHostState() }
+
                 Scaffold(
+                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                     bottomBar = { MedTrackBottomBar(currentScreen = "Symptoms", patientId) }
                 ) { innerPadding ->
                     // Pass the padding from Scaffold to your screen
                     Symptoms(
                         patientId = patientId,
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        snackbarHostState = snackbarHostState
                     )
                 }
             }
@@ -57,12 +65,11 @@ class SymptomsScreen : ComponentActivity() {
     }
 }
 @Composable
-fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
+fun Symptoms(patientId: String, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState) {
 
     val context = LocalContext.current
 
     // for pop up message
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
     // List of all the details in a symptom card
@@ -220,7 +227,9 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier) {
                         dateTime.value = pickedValue
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
             ) {
                 if (dateTime.value == "Select Date & Time") {
                     Text(text = "Select Date & Time")
@@ -437,7 +446,9 @@ fun SymptomCard(symptom: Symptom) {
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -526,7 +537,8 @@ fun SymptomCard(symptom: Symptom) {
 @Composable
 fun SymptomsPreview() {
     MedTrackTheme {
+        val temp = remember { SnackbarHostState() }
         // We pass a fake ID just to satisfy the function requirements
-        Symptoms(patientId = "P1001")
+        Symptoms(patientId = "P1001", snackbarHostState = temp)
     }
 }
