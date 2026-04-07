@@ -3,13 +3,13 @@ package com.garent.s35123656.medtrack
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,12 +40,13 @@ import java.util.Locale
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TopAppBar
@@ -55,10 +56,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.google.gson.reflect.TypeToken
 import com.google.gson.Gson
 import kotlin.jvm.java
-
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material3.Icon
 
 
 class HomeScreen : ComponentActivity() {
@@ -69,30 +78,44 @@ class HomeScreen : ComponentActivity() {
 
         setContent {
             MedTrackTheme {
+                val navController = rememberNavController()
+                val snackbarHostState = remember { SnackbarHostState() }
+
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route ?: "home"
+
                 Scaffold(
-                    // 1. Top Bar Function
                     topBar = {
-                        MedTrackTopBar(onLogout = { performLogout(this) })
+                        if (currentRoute == "home") {
+                            MedTrackTopBar(onLogout = { performLogout(this) })
+                        }
                     },
-
-                    // 2. Floating Action Button Function
                     floatingActionButton = {
-                        AddMedicationFAB(onClick = {
-                            val intent = Intent(this, AddMedication::class.java).apply {
-                                putExtra("PATIENT_ID", patientId)
-                            }
-                            startActivity(intent)
-                        })
+                        if (currentRoute == "home") {
+                            AddMedicationFAB(onClick = {
+                                val intent = Intent(this, AddMedication::class.java)
+                                intent.putExtra("PATIENT_ID", patientId)
+                                startActivity(intent)
+                            })
+                        }
                     },
-
-                    // C. Existing Bottom Bar
-                    bottomBar = { MedTrackBottomBar(currentScreen = "Home", patientId) }
+                    bottomBar = {
+                        MedTrackBottomBar(
+                            currentScreen = currentRoute,
+                            patientId = patientId,
+                            navController = navController
+                        )
+                    },
+                    snackbarHost = { SnackbarHost(snackbarHostState) }
                 ) { innerPadding ->
-                    // PASS THE PADDING TO THE CONTENT
-                    Home(
+                    // Use your new simplified method here
+                    MedTrackNavHost(
+                        navController = navController,
+                        innerPadding = innerPadding,
                         patientId = patientId,
-                        modifier = Modifier.padding(innerPadding)
+                        snackbarHostState = snackbarHostState
                     )
+
                 }
             }
         }
@@ -226,7 +249,12 @@ fun MedTrackTopBar(onLogout: () -> Unit) {
         title = { Text("MedTrack", fontWeight = FontWeight.Bold) },
         actions = {
             IconButton(onClick = onLogout) {
-                Text("LOGOUT", color = MaterialTheme.colorScheme.error)
+                // Replaced Text with Icon
+                Icon(
+                    imageVector = Icons.Filled.ExitToApp,
+                    contentDescription = "Logout", // Good for accessibility/screen readers
+                    tint = MaterialTheme.colorScheme.error // This keeps your red color!
+                )
             }
         }
     )
@@ -409,32 +437,50 @@ data class MedicationData(
 
 
 @Composable
-fun MedTrackBottomBar(currentScreen: String, petientID: String) {
-    val context = LocalContext.current
+fun MedTrackBottomBar(
+    currentScreen: String,
+    patientId: String,
+    navController: NavController
+) {
     NavigationBar {
         // Home Tab
         NavigationBarItem(
-            selected = currentScreen == "Home",
+            selected = currentScreen == "home",
             onClick = {
-                // goes to home page if it's currently not
-                if (currentScreen != "Home") {
-                    val intent = Intent(context, HomeScreen::class.java)
-                    intent.putExtra("PATIENT_ID", petientID) // include patient id when passing
-                    context.startActivity(intent)
+                if (currentScreen != "home") {
+                    navController.navigate("home") {
+                        // 1. Pop back to the root ("home"), but SAVE the state
+                        // of the screen we are leaving (like Symptoms)
+                        popUpTo("home") {
+                            saveState = true
+                        }
+                        // 2. Prevent creating duplicate Home screens
+                        launchSingleTop = true
+                        // 3. RESTORE the Home screen state if we were here before
+                        restoreState = true
+                    }
                 }
             },
             label = { Text("Home") },
             icon = { Icon(painterResource(android.R.drawable.ic_menu_today), null) }
         )
+
         // Symptoms Tab
         NavigationBarItem(
-            selected = currentScreen == "Symptoms",
+            selected = currentScreen == "symptoms",
             onClick = {
-                // goes to symptoms page if it's currently not
-                if (currentScreen != "Symptoms") {
-                    val intent = Intent(context, SymptomsScreen::class.java)
-                    intent.putExtra("PATIENT_ID", petientID) // include patient id when passing
-                    context.startActivity(intent)
+                if (currentScreen != "symptoms") {
+                    navController.navigate("symptoms") {
+                        // 1. Pop back to the root ("home") to avoid a massive backstack,
+                        // but SAVE the state of the screen we are leaving (Home)
+                        popUpTo("home") {
+                            saveState = true
+                        }
+                        // 2. Prevent creating duplicate Symptoms screens
+                        launchSingleTop = true
+                        // 3. RESTORE the Symptoms screen state (like typed notes)
+                        restoreState = true
+                    }
                 }
             },
             label = { Text("Symptoms") },
@@ -442,6 +488,32 @@ fun MedTrackBottomBar(currentScreen: String, petientID: String) {
         )
     }
 }
+
+@Composable
+fun MedTrackNavHost(
+    navController: NavHostController,
+    innerPadding: PaddingValues,
+    patientId: String,
+    snackbarHostState: SnackbarHostState
+) {
+    NavHost(
+        navController = navController,
+        startDestination = "home",
+        modifier = Modifier.padding(innerPadding)
+    ) {
+        composable("home") {
+            Home(patientId = patientId)
+        }
+        composable("symptoms") {
+            Symptoms(
+                patientId = patientId,
+                snackbarHostState = snackbarHostState
+            )
+        }
+    }
+}
+
+
 // FOR PREVIEW ONLY
 @Preview(showBackground = true, name = "Home Screen Preview")
 @Composable

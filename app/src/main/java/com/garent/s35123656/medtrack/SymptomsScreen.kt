@@ -35,37 +35,13 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-class SymptomsScreen : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
-        // init patient ID
-        val patientId = intent.getStringExtra("PATIENT_ID") ?: ""
-
-
-        setContent {
-            MedTrackTheme {
-
-                val snackbarHostState = remember { SnackbarHostState() }
-
-                Scaffold(
-                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                    bottomBar = { MedTrackBottomBar(currentScreen = "Symptoms", patientId) }
-                ) { innerPadding ->
-                    // Pass the padding from Scaffold to your screen
-                    Symptoms(
-                        patientId = patientId,
-                        modifier = Modifier.padding(innerPadding),
-                        snackbarHostState = snackbarHostState
-                    )
-                }
-            }
-        }
-    }
-}
 @Composable
-fun Symptoms(patientId: String, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState) {
+fun Symptoms(
+    patientId: String,
+    snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier
+) {
 
     val context = LocalContext.current
 
@@ -96,19 +72,11 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier, snackbarHostState
     }
 
     // The Scaffold for the layout
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        // Use the modifier passed from the activity here
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding -> // This 'innerPadding' contains the space occupied by the bars
-
-// Use LazyColumn for the WHOLE screen instead of Column
+    Box(modifier = modifier.fillMaxSize()) {
+    // Use LazyColumn for the WHOLE screen instead of Column
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                // Note: We use padding(horizontal) here so the scrollbar
-                // is at the edge of the screen, not 24dp away.
                 .padding(horizontal = 24.dp)
     ) {
         item {
@@ -257,7 +225,7 @@ fun Symptoms(patientId: String, modifier: Modifier = Modifier, snackbarHostState
                     } else if (dateTime.value == "Select Date & Time") {
                         scope.launch { snackbarHostState.showSnackbar("when did this symptom occur?") }
                     }
-                    // Note: severity is 1f..10f from the slider, so it's always in range by design.
+                    // Note: severity is 10f from the slider, so it's always in range by design.
                     else {
                         // SUCCESS MESSAGE
                         scope.launch {

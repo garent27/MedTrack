@@ -187,10 +187,14 @@ fun SignUp(
 
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            message = "Account created successfully! Redirecting back to login"
+                            message = "Account created successfully!!"
                         )
 
-                        // kill current screen and go back login
+                    }
+
+                    // wait then kill
+                    scope.launch {
+                        delay(1500)
                         (context as? Activity)?.finish()
                     }
                 }

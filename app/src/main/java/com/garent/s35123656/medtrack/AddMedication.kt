@@ -1,6 +1,7 @@
 package com.garent.s35123656.medtrack
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
@@ -48,6 +49,7 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import androidx.core.content.edit
+import kotlinx.coroutines.delay
 
 class AddMedication : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -319,13 +321,16 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
                             }
 
 
-                            scope.launch { snackbarHostState.showSnackbar("Success: Medication Added") }
+                            scope.launch {
+                            snackbarHostState.showSnackbar("Success: Medication Added")
                             clearFields()
+                            }
 
-                            // route back to home page
-                            val intent = Intent(context, HomeScreen::class.java)
-                            intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-                            context.startActivity(intent)
+                            // wait then kill screen
+                            scope.launch {
+                                delay(1000)
+                                (context as? Activity)?.finish()
+                            }
 
                         } else {
                             showErrors = true // Show all red messages
@@ -355,17 +360,15 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
             ) {
                 OutlinedButton(
                     onClick = {
-                        // =========!!!!!!!!!!!! SHARED PREFEENCE DATA CHECK !!!!!!====
+                        // 1. (Optional) Log your data check
                         val checkData = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
                             .getString(patientId, "Nothing found")
-
                         android.util.Log.d("SAVED_DATA", "Stored JSON: $checkData")
 
-
-                        val intent = Intent(context, HomeScreen::class.java)
-                        intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-                        context.startActivity(intent)
-                    } // Or popBackStack()
+                        // 2. THE FIX: Close this activity
+                        // This returns the user to the previous activity in the stack
+                        (context as? Activity)?.finish()
+                    }
                 ) {
                     Text("Back to Home")
                 }

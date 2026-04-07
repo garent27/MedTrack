@@ -62,4 +62,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.google.gson)
+    implementation(libs.androidx.compose.material.icons.extended)
 }
