@@ -328,7 +328,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
 
                             // wait then kill screen
                             scope.launch {
-                                delay(1000)
+                                delay(900)
                                 (context as? Activity)?.finish()
                             }
 

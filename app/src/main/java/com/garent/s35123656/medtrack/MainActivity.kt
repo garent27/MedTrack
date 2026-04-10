@@ -80,7 +80,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
     ) {
         // Logo above MedTrack
         Image(
-            painter = painterResource(id = R.drawable.choms2), // Replace 'logo' with your actual file name
+            painter = painterResource(id = R.drawable.medtrack), // Replace 'logo' with your actual file name
             contentDescription = "App Logo",
             modifier = Modifier.size(120.dp)
         )

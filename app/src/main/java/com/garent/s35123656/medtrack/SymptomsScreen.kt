@@ -370,7 +370,7 @@ fun getSymptomsForPatient(context: android.content.Context, targetId: String): L
     val list = mutableListOf<Symptom>()
     try {
         //read file
-        val file = context.resources.openRawResource(R.raw.symptoms)
+        val file = context.assets.open("symptoms.csv")
 
 
         file.bufferedReader().useLines { lines ->

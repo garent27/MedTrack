@@ -244,7 +244,7 @@ fun ValidatedTextField(
 fun checkUniquePhone(context: Context, phone: String): Boolean {
     // 1. Check CSV
     try {
-        context.resources.openRawResource(R.raw.patients).bufferedReader().useLines { lines ->
+        context.assets.open("patients.csv").bufferedReader().useLines { lines ->
             if (lines.any { it.split(",").getOrNull(1)?.trim() == phone }) return false
         }
     } catch (e: Exception) { e.printStackTrace() }
@@ -277,7 +277,7 @@ fun generateNextPatientId(context: Context): String {
 
     // 1. Check CSV for IDs
     try {
-        context.resources.openRawResource(R.raw.patients).bufferedReader().useLines { lines ->
+        context.assets.open("patients.csv").bufferedReader().useLines { lines ->
             lines.drop(1).forEach { line ->
                 val idPart = line.split(",").getOrNull(0)?.removePrefix("P")?.toIntOrNull()
                 if (idPart != null) ids.add(idPart)

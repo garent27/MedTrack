@@ -132,6 +132,23 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     var patientName by remember { mutableStateOf("Unknown User") }
     var medicationList by remember { mutableStateOf(listOf<MedicationData>()) }
 
+
+    // --- Lifecycle Observer to handle reloading ---
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            // This event triggers every time you return from AddMedication
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                patientName = GetPatientName(context, patientId)
+                medicationList = getMedicationsForPatient(context, patientId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     // Load data once when patientId is available
     LaunchedEffect(patientId) {
         patientName = GetPatientName(context, patientId)
@@ -285,7 +302,7 @@ fun AddMedicationFAB(onClick: () -> Unit) {
 //retrieve user name from csv
 private fun getNameFromCsv(context: Context, id: String): String? {
     return try {
-        context.resources.openRawResource(R.raw.patients).bufferedReader().useLines { lines ->
+        context.assets.open("patients.csv").bufferedReader().useLines { lines ->
             lines.forEach { line ->
                 val tokens = line.split(",")
                 if (tokens.isNotEmpty() && tokens[0].trim() == id) {
@@ -348,7 +365,7 @@ fun getMedicationsForPatient(context: Context, targetId: String): List<Medicatio
     // 2. Load from CSV (Raw Resource)
     val csvMeds = mutableListOf<MedicationData>()
     try {
-        context.resources.openRawResource(R.raw.medications).bufferedReader().useLines { lines ->
+        context.assets.open("medications.csv").bufferedReader().useLines { lines ->
             lines.drop(1).forEach { line ->
                 val tokens = line.split(",")
                 // tokens[0] is PatientID, tokens[1] is MedName, etc.

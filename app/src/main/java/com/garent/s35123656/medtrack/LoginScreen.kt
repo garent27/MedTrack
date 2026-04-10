@@ -66,7 +66,7 @@ fun Login(modifier: Modifier = Modifier) {
     ) {
         // 2. App Logo (Ensure 'choms2' exists in res/drawable)
         Image(
-            painter = painterResource(id = R.drawable.choms2),
+            painter = painterResource(id = R.drawable.medtrack),
             contentDescription = "MedTrack Logo",
             modifier = Modifier.size(200.dp)
         )
@@ -167,7 +167,7 @@ fun Login(modifier: Modifier = Modifier) {
 fun validateUserFromCsv(context: Context, phone: String, password: String): String? {
     return try {
         // Reads from app/src/main/res/raw/patients.csv
-        val inputStream = context.resources.openRawResource(R.raw.patients)
+        val inputStream = context.assets.open("patients.csv")
         val reader = BufferedReader(InputStreamReader(inputStream))
 
         reader.useLines { lines ->
