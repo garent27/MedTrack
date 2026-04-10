@@ -354,10 +354,10 @@ fun getSymptomsForPatient(context: android.content.Context, targetId: String): L
     } catch (e: Exception) { e.printStackTrace() }
 
     // Sort by newest added
-    return list.reversed()
+//    return list.reversed()
 
     // Sort by date
-    //return list.sortedByDescending { it.dateTime }
+    return list.sortedByDescending { it.dateTime }
 }
 
 

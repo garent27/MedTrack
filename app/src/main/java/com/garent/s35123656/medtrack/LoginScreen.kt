@@ -10,8 +10,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import java.io.BufferedReader
 import java.io.InputStreamReader
-
-
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
@@ -88,27 +86,21 @@ fun Login(
         Button(
             onClick = {
                 if (phone.isBlank() || password.isBlank()) {
-                    Toast.makeText(
-                        context,
-                        "Please enter both phone and password",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(context, "Please enter both phone and password", Toast.LENGTH_SHORT).show()
                 } else {
-                    // Check credentials against patients.csv and SharedPreferences
-                    val patientId = validateAllUser(context, phone, password)
+                    // Destructure the result: patientId is the ID, error is the message
+                    val (patientId, error) = validateAllUser(context, phone, password)
 
                     if (patientId != null) {
                         Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
 
-                        // Save logged-in ID to SharedPreferences
                         val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
                         sharedPref.edit().putString("logged_in_id", patientId).apply()
 
-                        // callback to let MainActivity handle the navigation
                         onLoginSuccess(patientId)
-
                     } else {
-                        Toast.makeText(context, "Invalid credentials", Toast.LENGTH_SHORT).show()
+                        // Show the specific error message returned from the function
+                        Toast.makeText(context, error ?: "Login failed", Toast.LENGTH_SHORT).show()
                     }
                 }
             },
@@ -140,58 +132,48 @@ fun Login(
 }
 
 
-/**
- *  Function to validate user from csv
- */
-fun validateUserFromCsv(context: Context, phone: String, password: String): String? {
-    return try {
+fun validateAllUser(context: Context, phone: String, password: String): Pair<String?, String?> {
+    // 1. Check CSV
+    try {
         val inputStream = context.assets.open("patients.csv")
         val reader = BufferedReader(InputStreamReader(inputStream))
+        var phoneFoundInCsv = false
 
         reader.useLines { lines ->
             lines.drop(1).forEach { line ->
                 val tokens = line.split(",")
-                val csvId = tokens[0]
-                val csvPhone = tokens[1]
-                val csvPass = tokens[3]
+                if (tokens.size >= 4) {
+                    val csvId = tokens[0].trim()
+                    val csvPhone = tokens[1].trim()
+                    val csvPass = tokens[3].trim()
 
-                if (csvPhone == phone && csvPass == password) {
-                    return csvId
+                    if (csvPhone == phone) {
+                        phoneFoundInCsv = true
+                        if (csvPass == password) return Pair(csvId, null)
+                    }
                 }
             }
         }
-        null
+        if (phoneFoundInCsv) return Pair(null, "Incorrect password")
     } catch (e: Exception) {
-        Log.e("Login", "${e.message}")
-        null
+        Log.e("Login", "CSV Error: ${e.message}")
     }
-}
 
-/**
- *  Function to validate all user (CSV + SharedPreference)
- */
-fun validateAllUser(context: Context, phone: String, password: String): String? {
-    // 1. Check CSV first
-    val csvResult = validateUserFromCsv(context, phone, password)
-    if (csvResult != null) return csvResult
-
-    // 2. If not found in CSV, check SharedPreferences
+    // 2. Check SharedPreferences
     val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
-    val userJson = sharedPref.getString(phone, null) ?: return null
+    val userJson = sharedPref.getString(phone, null)
+        ?: return Pair(null, "No account found with this phone number")
 
     return try {
         val gson = Gson()
-        val user = gson.fromJson(userJson, User::class.java) // ensure User class exists
-
-        // Check if the password matches
+        val user = gson.fromJson(userJson, User::class.java)
         if (user.Password == password) {
-            user.PatientID
+            Pair(user.PatientID, null)
         } else {
-            null
+            Pair(null, "Incorrect password")
         }
     } catch (e: Exception) {
-        Log.e("Login", "${e.message}")
-        null
+        Pair(null, "Error loading account data")
     }
 }
 
