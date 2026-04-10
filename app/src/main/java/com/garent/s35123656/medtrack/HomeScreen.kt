@@ -57,73 +57,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.google.gson.reflect.TypeToken
 import com.google.gson.Gson
 import kotlin.jvm.java
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material3.Icon
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 
-class HomeScreen : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        val patientId = intent.getStringExtra("PATIENT_ID") ?: ""
-
-        setContent {
-            MedTrackTheme {
-                val navController = rememberNavController()
-                val snackbarHostState = remember { SnackbarHostState() }
-
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route ?: "home"
-
-                Scaffold(
-                    topBar = {
-                        if (currentRoute == "home") {
-                            MedTrackTopBar(onLogout = { performLogout(this) })
-                        }
-                    },
-                    floatingActionButton = {
-                        if (currentRoute == "home") {
-                            AddMedicationFAB(onClick = {
-                                val intent = Intent(this, AddMedication::class.java)
-                                intent.putExtra("PATIENT_ID", patientId)
-                                startActivity(intent)
-                            })
-                        }
-                    },
-                    bottomBar = {
-                        MedTrackBottomBar(
-                            currentScreen = currentRoute,
-                            patientId = patientId,
-                            navController = navController
-                        )
-                    },
-                    snackbarHost = { SnackbarHost(snackbarHostState) }
-                ) { innerPadding ->
-                    // Use your new simplified method here
-                    MedTrackNavHost(
-                        navController = navController,
-                        innerPadding = innerPadding,
-                        patientId = patientId,
-                        snackbarHostState = snackbarHostState
-                    )
-
-                }
-            }
-        }
-    }
-}
-
-
-//@OptIn(ExperimentalMaterial3Api::class)
+/**
+ *  Main home screen
+ */
 @Composable
 fun Home(patientId: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -132,13 +79,12 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
     var patientName by remember { mutableStateOf("Unknown User") }
     var medicationList by remember { mutableStateOf(listOf<MedicationData>()) }
 
-
-    // --- Lifecycle Observer to handle reloading ---
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
-        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            // This event triggers every time you return from AddMedication
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+    // Lifecycle Observer to handle reloading
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            // This event triggers every time you return from AddMedication Activity
+            if (event == Lifecycle.Event.ON_RESUME) {
                 patientName = GetPatientName(context, patientId)
                 medicationList = getMedicationsForPatient(context, patientId)
             }
@@ -151,8 +97,10 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
     // Load data once when patientId is available
     LaunchedEffect(patientId) {
-        patientName = GetPatientName(context, patientId)
-        medicationList = getMedicationsForPatient(context, patientId)
+        if (patientId.isNotEmpty()) {
+            patientName = GetPatientName(context, patientId)
+            medicationList = getMedicationsForPatient(context, patientId)
+        }
     }
 
     // 2. Calculations for UI
@@ -169,7 +117,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        // display username
+        // patient name text
         Text(
             text = "Hello, $patientName",
             fontSize = 28.sp,
@@ -179,7 +127,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // display current date
+        // current date
         Text(
             text = currentDate,
             fontSize = 18.sp,
@@ -189,7 +137,6 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // your medication text
         Text(
             text = "Your Medications",
             style = MaterialTheme.typography.titleLarge,
@@ -199,13 +146,13 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(12.dp))
 
 
-        // checks if current patient have medication or not
+        // check if user have medication
         if (medicationList.isEmpty()) {
-            // This shows if the CSV search returned no results for this ID
+            // if not display no medication
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f), // Take up the remaining space
+                    .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -215,7 +162,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
                 )
             }
         } else {
-            // Normal View if medications exist
+            // else list out all the medication
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -231,6 +178,7 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // lazy column for all the medication
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
@@ -258,7 +206,9 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
 }
 
 
-// Top bar button for logging out
+/**
+ *  Top bar button for logging out
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedTrackTopBar(onLogout: () -> Unit) {
@@ -266,27 +216,21 @@ fun MedTrackTopBar(onLogout: () -> Unit) {
         title = { Text("MedTrack", fontWeight = FontWeight.Bold) },
         actions = {
             IconButton(onClick = onLogout) {
-                // Replaced Text with Icon
                 Icon(
                     imageVector = Icons.Filled.ExitToApp,
-                    contentDescription = "Logout", // Good for accessibility/screen readers
-                    tint = MaterialTheme.colorScheme.error // This keeps your red color!
+                    contentDescription = "Logout",
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
         }
     )
 }
 
-private fun performLogout(context: Context) {
-    val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    sharedPref.edit().remove("logged_in_id").apply()
-    val intent = Intent(context, MainActivity::class.java).apply {
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-    }
-    context.startActivity(intent)
-}
 
 
+/**
+ *  FAB to open add medication screen
+ */
 @Composable
 fun AddMedicationFAB(onClick: () -> Unit) {
     FloatingActionButton(
@@ -299,7 +243,9 @@ fun AddMedicationFAB(onClick: () -> Unit) {
 }
 
 
-//retrieve user name from csv
+/**
+ * retrieve user name from csv
+ */
 private fun getNameFromCsv(context: Context, id: String): String? {
     return try {
         context.assets.open("patients.csv").bufferedReader().useLines { lines ->
@@ -316,18 +262,15 @@ private fun getNameFromCsv(context: Context, id: String): String? {
     }
 }
 
-// retrieve user name from csv + gson
+/**
+ * retrieve user name from csv + gson
+ */
 fun GetPatientName(context: Context, id: String): String {
-
-    // 1. First, try to find the name in the CSV
     val csvName = getNameFromCsv(context, id)
     if (csvName != null) return csvName
 
-    // 2. If not in CSV, look through SharedPreferences (JSON)
     val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
     val gson = Gson()
-
-    // We must loop through all saved users because the key is Phone, not ID
     val allEntries = sharedPref.all
     for (entry in allEntries.values) {
         try {
@@ -337,10 +280,9 @@ fun GetPatientName(context: Context, id: String): String {
                 return user.Name
             }
         } catch (e: Exception) {
-            continue // Skip if a specific entry is corrupted
+            continue
         }
     }
-
     return "Unknown Patient"
 }
 
@@ -389,7 +331,7 @@ fun getMedicationsForPatient(context: Context, targetId: String): List<Medicatio
 }
 
 /**
- * Reusable Card UI for each medication
+ *  Card UI for each medication
  */
 @Composable
 fun MedicationCard(med: MedicationData, onToggleTaken: (Boolean) -> Unit) {
@@ -440,6 +382,10 @@ fun MedicationCard(med: MedicationData, onToggleTaken: (Boolean) -> Unit) {
         }
     }
 }
+
+/**
+ *  Data class for each individual medication detail
+ */
 data class MedicationData(
     val medPetientID: String? = "",
     val medicationName: String? = "Unknown",
@@ -453,6 +399,9 @@ data class MedicationData(
 
 
 
+/**
+ *  Bottom bar for navigation between Home and Symtoms tab
+ */
 @Composable
 fun MedTrackBottomBar(
     currentScreen: String,
@@ -506,29 +455,6 @@ fun MedTrackBottomBar(
     }
 }
 
-@Composable
-fun MedTrackNavHost(
-    navController: NavHostController,
-    innerPadding: PaddingValues,
-    patientId: String,
-    snackbarHostState: SnackbarHostState
-) {
-    NavHost(
-        navController = navController,
-        startDestination = "home",
-        modifier = Modifier.padding(innerPadding)
-    ) {
-        composable("home") {
-            Home(patientId = patientId)
-        }
-        composable("symptoms") {
-            Symptoms(
-                patientId = patientId,
-                snackbarHostState = snackbarHostState
-            )
-        }
-    }
-}
 
 
 // FOR PREVIEW ONLY

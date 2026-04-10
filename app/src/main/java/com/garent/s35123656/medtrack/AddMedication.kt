@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.TimePickerDialog
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -76,6 +75,10 @@ class AddMedication : ComponentActivity() {
     }
 }
 
+
+/**
+ *  Main Add Medication screen
+ */
 @Composable
 fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState) {
     val context = LocalContext.current
@@ -112,9 +115,8 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
     // Shared preference gson
     val gson = Gson()
 
-    // MAIN SCAFFOLD
 
-        // for maybe future horizontal screen integration purpose
+    // for maybe future horizontal screen integration purpose
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -380,7 +382,9 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
     }
 }
 
-
+/**
+ * function for user selecting time
+ */
 @SuppressLint("DefaultLocale")
 fun showTimePicker(mContext: Context, mTime: MutableState<String>) {
     val mCalendar = Calendar.getInstance()
@@ -401,15 +405,7 @@ fun showTimePicker(mContext: Context, mTime: MutableState<String>) {
     mTimePickerDialog.show()
 }
 
-//data class MedicationFull(
-//    val PatientID: String,
-//    val MedicationName: String,
-//    val Dosage: String,
-//    val Frequency: String,
-//    val ScheduledTime: String,
-//    val MedicationType: String,
-//    val Notes: String
-//)
+
 
 // FOR PREVIEW ONLYYY
 @Preview(showBackground = true, showSystemUi = true)

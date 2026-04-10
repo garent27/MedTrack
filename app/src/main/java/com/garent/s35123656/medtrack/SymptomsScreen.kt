@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-
+/**
+ *  Main Symptoms screen
+ */
 @Composable
 fun Symptoms(
     patientId: String,
@@ -156,6 +158,7 @@ fun Symptoms(
                 fontWeight = FontWeight.Bold
             )
 
+            // Slider to set serverity
             Slider(
                 value = severity,
                 onValueChange = { severity = it },
@@ -165,7 +168,7 @@ fun Symptoms(
                 colors = SliderDefaults.colors(
                     thumbColor = sliderColor,          // The circle handle
                     activeTrackColor = sliderColor,    // The line to the left of the thumb
-                    activeTickColor = Color.Transparent, // Optional: hide tick marks for cleaner look
+                    activeTickColor = Color.Transparent, // hide tick marks for cleaner look
                     inactiveTrackColor = sliderColor.copy(alpha = 0.24f) // Faded version of the color
                 )
             )
@@ -276,34 +279,10 @@ fun Symptoms(
     }
 }
 
-//@Composable
-//fun TimePickerFun(mTime: MutableState<String>): TimePickerDialog {
-//    // Get the current context
-//    val mContext = LocalContext.current
-//    // Get a calendar instance
-//    val mCalendar = Calendar.getInstance()
-//
-//    // Get the current hour and minute
-//    val mHour = mCalendar.get(Calendar.HOUR_OF_DAY)
-//    val mMinute = mCalendar.get(Calendar.MINUTE)
-//
-//    // Set the calendar's time to the current time
-//    mCalendar.time = Calendar.getInstance().time
-//
-//    // Return a TimePickerDialog
-//    return TimePickerDialog(
-//        mContext,
-//        { _, hour: Int, minute: Int ->
-//            // Update the state value directly
-//            // Format ensures 14:05 instead of 14:5
-//            mTime.value = String.format("%02d:%02d", hour, minute)
-//        },
-//        mHour,
-//        mMinute,
-//        false
-//    )
-//}
 
+/**
+ *  Function for Date time picker
+ */
 fun showDateTimePicker(context: Context, onDateTimeSelected: (String) -> Unit) {
     val calendar = Calendar.getInstance()
 
@@ -335,28 +314,10 @@ fun showDateTimePicker(context: Context, onDateTimeSelected: (String) -> Unit) {
     datePickerDialog.show()
 }
 
-//fun saveSymptomToCSV(context: android.content.Context, id: String, category: String): Boolean {
-//    return try {
-//        // get file
-//        val file = File(context.filesDir, "symptoms.csv")
-//
-//        // Open file in append mode
-//        FileOutputStream(file, true).bufferedWriter().use { writer ->
-//            writer.write("$id,$category,N/A,N/A,N/A")
-//            writer.newLine()
-//        }
-//
-//        // Write the data row with given data
-//        Log.d("CSV_DEBUG", "Successfully wrote to: ${file.absolutePath}")
-//        true
-//
-//    } catch (e: Exception) {
-//        e.printStackTrace()
-//        false
-//    }
-//}
 
-
+/**
+ *  Symptom data class
+ */
 data class Symptom(
     val category: String,
     val severity: String,
@@ -365,7 +326,9 @@ data class Symptom(
 )
 
 
-// Getting symptoms from csv file
+/**
+ *  Getting symptoms from csv file
+ */
 fun getSymptomsForPatient(context: android.content.Context, targetId: String): List<Symptom> {
     val list = mutableListOf<Symptom>()
     try {
@@ -447,12 +410,14 @@ fun SymptomCard(symptom: Symptom) {
                 }
             }
 
+            // show date
             Text(
                 text = symptom.dateTime,
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray
             )
 
+            // show no notes if don't have
             if (symptom.notes != "N/A" && symptom.notes.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -465,40 +430,6 @@ fun SymptomCard(symptom: Symptom) {
     }
 }
 
-//@Composable
-//fun MedTrackBottomBar(currentScreen: String, patientId: String) {
-//    val context = LocalContext.current
-//    NavigationBar {
-//        // Home Tab
-//        NavigationBarItem(
-//            selected = currentScreen == "Home",
-//            onClick = {
-//                // goes to home page if it's currently not
-//                if (currentScreen != "Home") {
-//                    val intent = Intent(context, HomeScreen::class.java)
-//                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-//                    context.startActivity(intent)
-//                }
-//            },
-//            label = { Text("Home") },
-//            icon = { Icon(painterResource(android.R.drawable.ic_menu_today), null) }
-//        )
-//        // Symptoms Tab
-//        NavigationBarItem(
-//            selected = currentScreen == "Symptoms",
-//            onClick = {
-//                // goes to symptoms page if it's currently not
-//                if (currentScreen != "Symptoms") {
-//                    val intent = Intent(context, SymptomsScreen::class.java)
-//                    intent.putExtra("PATIENT_ID", patientId) // include patient id when passing
-//                    context.startActivity(intent)
-//                }
-//            },
-//            label = { Text("Symptoms") },
-//            icon = { Icon(painterResource(android.R.drawable.ic_dialog_alert), null) }
-//        )
-//    }
-//}
 
 // FOR PREVIEW ONLYYY
 @Preview(showBackground = true, showSystemUi = true)

@@ -1,14 +1,8 @@
 package com.garent.s35123656.medtrack
 
-import android.app.Activity
 import android.content.Context
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,22 +30,14 @@ import androidx.compose.ui.unit.dp
 import com.google.gson.Gson
 import kotlin.jvm.java
 
-class LoginScreen : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MedTrackTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Login(modifier = Modifier.padding(innerPadding))
-                }
-            }
-        }
-    }
-}
-
+/**
+ *  Main login screen
+ */
 @Composable
-fun Login(modifier: Modifier = Modifier) {
+fun Login(
+    onLoginSuccess: (String) -> Unit, // callback to talk to MainActivity
+    modifier: Modifier = Modifier
+) {
     // 1. State management for input fields
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -64,7 +50,7 @@ fun Login(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        // 2. App Logo (Ensure 'choms2' exists in res/drawable)
+        // 2. App Logo
         Image(
             painter = painterResource(id = R.drawable.medtrack),
             contentDescription = "MedTrack Logo",
@@ -85,7 +71,7 @@ fun Login(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 4. Password Input (Masked)
+        // 4. Password Input
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -108,26 +94,19 @@ fun Login(modifier: Modifier = Modifier) {
                         Toast.LENGTH_SHORT
                     ).show()
                 } else {
-                    // Check credentials against patients.csv
+                    // Check credentials against patients.csv and SharedPreferences
                     val patientId = validateAllUser(context, phone, password)
 
                     if (patientId != null) {
                         Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
 
-                        // save id log in in shared preference validate successful
+                        // Save logged-in ID to SharedPreferences
                         val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
                         sharedPref.edit().putString("logged_in_id", patientId).apply()
 
-                        context.startActivity(Intent(context, HomeScreen::class.java).apply {
-                            putExtra("PATIENT_ID", patientId)
-                        })
-                        // kill current screen
-                        (context as Activity).finish()
+                        // callback to let MainActivity handle the navigation
+                        onLoginSuccess(patientId)
 
-                        // Navigate to HomeActivity
-                        context.startActivity(Intent(context, HomeScreen::class.java).apply {
-                            putExtra("PATIENT_ID", patientId) // Pass patient ID
-                        })
                     } else {
                         Toast.makeText(context, "Invalid credentials", Toast.LENGTH_SHORT).show()
                     }
@@ -137,8 +116,6 @@ fun Login(modifier: Modifier = Modifier) {
         ) {
             Text("Login")
         }
-
-
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -151,7 +128,7 @@ fun Login(modifier: Modifier = Modifier) {
 
             TextButton(
                 onClick = {
-                    // Navigate to SignUpActivity
+                    // Navigate to SignUpActivity (Leaving this as Intent for now assuming SignUp is still an Activity)
                     val intent = Intent(context, SignUpScreen::class.java)
                     context.startActivity(intent)
                 }
@@ -162,11 +139,12 @@ fun Login(modifier: Modifier = Modifier) {
     }
 }
 
-// function to validate user from csv
 
+/**
+ *  Function to validate user from csv
+ */
 fun validateUserFromCsv(context: Context, phone: String, password: String): String? {
     return try {
-        // Reads from app/src/main/res/raw/patients.csv
         val inputStream = context.assets.open("patients.csv")
         val reader = BufferedReader(InputStreamReader(inputStream))
 
@@ -189,6 +167,9 @@ fun validateUserFromCsv(context: Context, phone: String, password: String): Stri
     }
 }
 
+/**
+ *  Function to validate all user (CSV + SharedPreference)
+ */
 fun validateAllUser(context: Context, phone: String, password: String): String? {
     // 1. Check CSV first
     val csvResult = validateUserFromCsv(context, phone, password)
@@ -196,17 +177,17 @@ fun validateAllUser(context: Context, phone: String, password: String): String? 
 
     // 2. If not found in CSV, check SharedPreferences
     val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
-    val userJson = sharedPref.getString(phone, null) ?: return null // User doesn't exist
+    val userJson = sharedPref.getString(phone, null) ?: return null
 
     return try {
         val gson = Gson()
-        val user = gson.fromJson(userJson, User::class.java)
+        val user = gson.fromJson(userJson, User::class.java) // ensure User class exists
 
         // Check if the password matches
         if (user.Password == password) {
-            user.PatientID // Return the generated ID (e.g., P1004)
+            user.PatientID
         } else {
-            null // Wrong password
+            null
         }
     } catch (e: Exception) {
         Log.e("Login", "${e.message}")
@@ -215,11 +196,11 @@ fun validateAllUser(context: Context, phone: String, password: String): String? 
 }
 
 // FOR PREVIEW ONLY
-@Preview(showBackground = true, name = "Home Screen Preview")
+@Preview(showBackground = true, name = "Login Screen Preview")
 @Composable
 fun LoginScreenPrev() {
     MedTrackTheme {
-        // We pass a fake ID just to see what the layout looks like
-        Login()
+        // Pass a dummy function {} so the preview doesn't break
+        Login(onLoginSuccess = {})
     }
 }

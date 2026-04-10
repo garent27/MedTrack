@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,9 +19,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,32 +39,85 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import kotlin.jvm.java
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
-        // init variable for checking Session Persistence & Navigation Guard
-        val sharedPref = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val savedId = sharedPref.getString("logged_in_id", null)
+        setContent {
+            MedTrackTheme {
+                val navController = rememberNavController()
+                val snackbarHostState = remember { SnackbarHostState() }
+                val context = LocalContext.current
 
-        // if user log in exist
-        if (savedId != null) {
-            // Session exists! Skip Login and go to Home
-            val intent = Intent(this, HomeScreen::class.java).apply {
-                putExtra("PATIENT_ID", savedId)
-            }
-            startActivity(intent)
-            finish() // Important: Destroy MainActivity so user can't "Go Back" to it
-        } else {
-            enableEdgeToEdge()
-            setContent {
-                MedTrackTheme {
-                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        WelcomeScreen(modifier = Modifier.padding(innerPadding))
+                // 1. Session Check
+                val sharedPref = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
+                var loggedInId by remember { mutableStateOf(sharedPref.getString("logged_in_id", null)) }
+
+                // 2. Track current route to show/hide bars
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route ?: "welcome"
+
+                Scaffold(
+                    topBar = {
+                        // Only show TopBar on Home
+                        if (currentRoute == "home") {
+                            MedTrackTopBar(onLogout = {
+                                // Clear session and navigate back to welcome
+                                sharedPref.edit().remove("logged_in_id").apply()
+                                loggedInId = null
+                                navController.navigate("welcome") {
+                                    popUpTo(0) { inclusive = true } // Wipe history
+                                }
+                            })
+                        }
+                    },
+                    bottomBar = {
+                        // Show BottomBar only on Home and Symptoms
+                        if (currentRoute == "home" || currentRoute == "symptoms") {
+                            MedTrackBottomBar(
+                                currentScreen = currentRoute,
+                                patientId = loggedInId ?: "",
+                                navController = navController
+                            )
+                        }
+                    },
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    floatingActionButton = {
+                        // Shows logout fab only in home
+                        if (currentRoute == "home") {
+                            AddMedicationFAB(onClick = {
+                                val intent = Intent(context, AddMedication::class.java)
+                                intent.putExtra("PATIENT_ID", loggedInId)
+                                context.startActivity(intent)
+                            })
+                        }
                     }
+                ) { innerPadding ->
+
+                    // Call extracted NavHost component here
+                    MedTrackNavHost(
+                        navController = navController,
+                        innerPadding = innerPadding,
+                        patientId = loggedInId ?: "",
+                        onLoginSuccess = { newId ->
+                            loggedInId = newId
+                            navController.navigate("home") {
+                                popUpTo("welcome") { inclusive = true }
+                            }
+                        },
+                        snackbarHostState = snackbarHostState
+                    )
+
                 }
             }
         }
@@ -65,9 +125,48 @@ class MainActivity : ComponentActivity() {
 }
 
 
+/**
+ *  Main navigation for welcome, login, home and symptoms
+ */
 @Composable
-fun WelcomeScreen(modifier: Modifier = Modifier) {
-    // Needed for the Intent is initiated from
+fun MedTrackNavHost(
+    navController: NavHostController,
+    innerPadding: PaddingValues,
+    patientId: String,
+    onLoginSuccess: (String) -> Unit,
+    snackbarHostState: SnackbarHostState
+) {
+    // for navigation between welcome, login, home and symptoms
+    NavHost(
+        navController = navController,
+
+        // set start destination
+        startDestination = if (patientId.isNotEmpty()) "home" else "welcome",
+        modifier = Modifier.padding(innerPadding)
+    ) {
+        composable("welcome") {
+            WelcomeScreen(navController = navController)
+        }
+        composable("login") {
+            Login(onLoginSuccess = onLoginSuccess)
+        }
+        composable("home") {
+            Home(patientId = patientId)
+        }
+        composable("symptoms") {
+            Symptoms(
+                patientId = patientId,
+                snackbarHostState = snackbarHostState
+            )
+        }
+    }
+}
+
+/**
+ *  Main welcome screen
+ */
+@Composable
+fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
@@ -78,16 +177,16 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo above MedTrack
+        // Med track Image
         Image(
-            painter = painterResource(id = R.drawable.medtrack), // Replace 'logo' with your actual file name
+            painter = painterResource(id = R.drawable.medtrack),
             contentDescription = "App Logo",
             modifier = Modifier.size(120.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // App Name
+        // Medtrack title
         Text(
             text = "MedTrack",
             fontSize = 42.sp,
@@ -97,7 +196,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Health Disclaimer
+        // description
         Text(
             text = "This app is for tracking purposes only and does not replace professional medical advice.",
             style = MaterialTheme.typography.bodySmall,
@@ -107,22 +206,16 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Monash Health Link
-        TextButton(onClick = {
-            uriHandler.openUri("https://www.monashhealth.org")
-        }) {
+        // goes to monash health webstie
+        TextButton(onClick = { uriHandler.openUri("https://www.monashhealth.org") }) {
             Text("Visit Monash Health Clinic")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Login Button using Intent
+        // login button
         Button(
-            onClick = {
-                // Navigates to LoginActivity using the standard Intent method
-                // Use the name of the ACTUAL CLASS you created
-                context.startActivity(Intent(context, LoginScreen::class.java))
-            },
+            onClick = { navController.navigate("login") },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Login")
@@ -130,10 +223,9 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // sign up button
         Button(
-            onClick = {
-                context.startActivity(Intent(context, SignUpScreen::class.java))
-            },
+            onClick = { context.startActivity(Intent(context, SignUpScreen::class.java)) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Sign Up")
@@ -141,7 +233,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Student Info (Requirement)
+        // my detail text
         Text(
             text = "By Garent Ngor Jun Hoe (35123656)",
             style = MaterialTheme.typography.labelLarge,
@@ -154,7 +246,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
 @Composable
 fun MainPreview() {
     MedTrackTheme {
-        // We pass a fake ID just to see what the layout looks like
-        WelcomeScreen()
+        // Must provide a dummy NavController for the preview to compile
+        WelcomeScreen(navController = rememberNavController())
     }
 }

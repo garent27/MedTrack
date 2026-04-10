@@ -3,7 +3,6 @@ package com.garent.s35123656.medtrack
 import android.app.Activity
 import android.content.Context
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,7 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -70,6 +68,10 @@ class SignUpScreen : ComponentActivity() {
         }
     }
 }
+
+/**
+ *  Main Sign up Screen
+ */
 @Composable
 fun SignUp(
     snackbarHostState: SnackbarHostState,
@@ -154,6 +156,7 @@ fun SignUp(
 
         // Sign Up Button
         Button(
+            // check all the inputs
             onClick = {
                 // Reset errors
                 nameError = null; phoneError = null; passwordError = null; confirmError = null
@@ -210,6 +213,10 @@ fun SignUp(
         }
     }
 }
+
+/**
+ *  Text Field with error validation
+ */
 @Composable
 fun ValidatedTextField(
     value: String,
@@ -220,6 +227,7 @@ fun ValidatedTextField(
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        // Display the outlined text field
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -230,6 +238,7 @@ fun ValidatedTextField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             singleLine = true
         )
+        // display error if exist
         if (error != null) {
             Text(
                 text = error,
@@ -241,6 +250,9 @@ fun ValidatedTextField(
     }
 }
 
+/**
+ *  Fucntion to check if phone number entered is unique
+ */
 fun checkUniquePhone(context: Context, phone: String): Boolean {
     // 1. Check CSV
     try {
@@ -255,6 +267,9 @@ fun checkUniquePhone(context: Context, phone: String): Boolean {
     return !sharedPref.contains(phone)
 }
 
+/**
+ *  Function to save new user after sign up
+ */
 fun saveNewUser(context: Context, name: String, phone: String, pass: String) {
     val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
     val gson = Gson()
@@ -301,6 +316,9 @@ fun generateNextPatientId(context: Context): String {
     return "P$nextId"
 }
 
+/**
+ *  data class to store user details
+ */
 data class User(
     val PatientID: String,
     val PhoneNumber: String,
