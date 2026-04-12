@@ -83,6 +83,7 @@ class AddMedication : ComponentActivity() {
 fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState) {
     val context = LocalContext.current
 
+
     // recorded variables
     var medName by remember { mutableStateOf("") }
     var dosage by remember { mutableStateOf("") }
@@ -115,6 +116,9 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
     // Shared preference gson
     val gson = Gson()
 
+    // prevent press save multiple time
+    var isSaving by remember { mutableStateOf(false) }
+
 
     // for maybe future horizontal screen integration purpose
     LazyColumn(
@@ -123,7 +127,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // --- 1. Page header title ---
+        // 1. Page header title
         item {
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -133,7 +137,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
             )
         }
 
-        // --- 2. Medication Name and Dosage Text input  ---
+        // 2. Medication Name and Dosage Text input
         item {
             OutlinedTextField(
                 value = medName,
@@ -175,7 +179,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
             )
         }
 
-        // --- 3. Frequency Dropdown Option ---
+        // 3. Frequency Dropdown Option
         item {
             Text("Frequency", style = MaterialTheme.typography.labelLarge)
             Box {
@@ -196,7 +200,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
                 }
             }
         }
-        // --- 4. Time input ---
+        // 4. Time input
         item {
             Text(text = "Schedule Time", style = MaterialTheme.typography.labelLarge)
 
@@ -232,7 +236,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
             }
         }
 
-        // --- 5. Medication Type Dropdown ---
+        // 5. Medication Type Dropdown
         item {
             Text("Medication Type", style = MaterialTheme.typography.labelLarge)
             Box {
@@ -254,7 +258,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
             }
         }
 
-        // --- 6. Optional Notes ---
+        // 6. Optional Notes
         item {
             OutlinedTextField(
                 value = notes,
@@ -278,16 +282,18 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
         }
 
 
-        // --- 7. Save and Clear button ---
+        // 7. Save and Clear button
         item {
-            // 1. You MUST wrap them in a Row for 'weight' to work
+            // 1. wrap them in a Row for weight
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp) // Adds a nice gap between buttons
             ) {
                 // SAVE BUTTON
                 Button(
+                    enabled = !isSaving,
                     onClick = {
+                        isSaving = true
                         if (isNameValid && isDosageValid && isTimeValid) {
 
                             // 1. Initialize SharedPreferences
@@ -367,7 +373,6 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
                             .getString(patientId, "Nothing found")
                         android.util.Log.d("SAVED_DATA", "Stored JSON: $checkData")
 
-                        // 2. THE FIX: Close this activity
                         // This returns the user to the previous activity in the stack
                         (context as? Activity)?.finish()
                     }

@@ -149,12 +149,16 @@ fun validateAllUser(context: Context, phone: String, password: String): Pair<Str
 
                     if (csvPhone == phone) {
                         phoneFoundInCsv = true
-                        if (csvPass == password) return Pair(csvId, null)
+                        if (csvPass == password) {
+                            return Pair(csvId, null)
+                        }
                     }
                 }
             }
         }
-        if (phoneFoundInCsv) return Pair(null, "Incorrect password")
+        if (phoneFoundInCsv) {
+            return Pair(null, "Incorrect password")
+        }
     } catch (e: Exception) {
         Log.e("Login", "CSV Error: ${e.message}")
     }
@@ -175,6 +179,7 @@ fun validateAllUser(context: Context, phone: String, password: String): Pair<Str
     } catch (e: Exception) {
         Pair(null, "Error loading account data")
     }
+
 }
 
 // FOR PREVIEW ONLY
