@@ -63,45 +63,34 @@ import kotlin.jvm.java
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-
+import kotlinx.coroutines.launch
+import com.garent.s35123656.medtrack.data.entity.Medication
+import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 
 /**
  *  Main home screen
  */
 @Composable
-fun Home(patientId: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
+fun Home(patientId: String, viewModel: HomeViewModel, modifier: Modifier = Modifier) {
 
-    // 1. Data State Management
-    var patientName by remember { mutableStateOf("Unknown User") }
-    var medicationList by remember { mutableStateOf(listOf<MedicationData>()) }
+    // 2. Use the ViewModel to observe data reactively
+    val medicationList by viewModel.getMedications(patientId).collectAsState(initial = emptyList())
+    val patientName = viewModel.patientName
 
-    // Lifecycle Observer to handle reloading
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            // This event triggers every time you return from AddMedication Activity
-            if (event == Lifecycle.Event.ON_RESUME) {
-                patientName = GetPatientName(context, patientId)
-                medicationList = getMedicationsForPatient(context, patientId)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    // Load data once when patientId is available
+    // 3. Tell the ViewModel to load the name when the screen opens
     LaunchedEffect(patientId) {
         if (patientId.isNotEmpty()) {
-            patientName = GetPatientName(context, patientId)
-            medicationList = getMedicationsForPatient(context, patientId)
+            viewModel.loadPatientName(patientId)
         }
     }
+
+
+
 
     // 2. Calculations for UI
     val calendar = Calendar.getInstance().time
@@ -179,26 +168,14 @@ fun Home(patientId: String, modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // lazy column for all the medication
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
+            LazyColumn {
                 items(medicationList) { med ->
                     MedicationCard(
                         med = med,
                         onToggleTaken = { isChecked ->
-                            medicationList = medicationList.map { currentMed ->
-                                if (currentMed.medicationName == med.medicationName && currentMed.scheduledTime == med.scheduledTime) {
-                                    currentMed.copy(isTaken = isChecked)
-                                } else {
-                                    currentMed
-                                }
-                            }
+                            viewModel.toggleMedicationTaken(med.id, isChecked)
                         }
                     )
-                }
-                item {
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
@@ -334,7 +311,7 @@ fun getMedicationsForPatient(context: Context, targetId: String): List<Medicatio
  *  Card UI for each medication
  */
 @Composable
-fun MedicationCard(med: MedicationData, onToggleTaken: (Boolean) -> Unit) {
+fun MedicationCard(med: Medication, onToggleTaken: (Boolean) -> Unit) {
     // 1. Define visual states based on med.isTaken
     val cardAlpha = if (med.isTaken) 0.6f else 1f
     val textDecoration = if (med.isTaken) TextDecoration.LineThrough else TextDecoration.None
@@ -463,6 +440,6 @@ fun MedTrackBottomBar(
 fun HomeScreenPreview() {
     MedTrackTheme {
         // We pass a fake ID just to see what the layout looks like
-        Home(patientId = "P1001")
+//        Home(patientId = "P1001")
     }
 }

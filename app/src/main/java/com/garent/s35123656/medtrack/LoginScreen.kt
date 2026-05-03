@@ -138,55 +138,55 @@ fun Login(
 }
 
 
-fun validateAllUser(context: Context, phone: String, password: String): Pair<String?, String?> {
-    // 1. Check CSV
-    try {
-        val inputStream = context.assets.open("patients.csv")
-        val reader = BufferedReader(InputStreamReader(inputStream))
-        var phoneFoundInCsv = false
-
-        reader.useLines { lines ->
-            lines.drop(1).forEach { line ->
-                val tokens = line.split(",")
-                if (tokens.size >= 4) {
-                    val csvId = tokens[0].trim()
-                    val csvPhone = tokens[1].trim()
-                    val csvPass = tokens[3].trim()
-
-                    if (csvPhone == phone) {
-                        phoneFoundInCsv = true
-                        if (csvPass == password) {
-                            return Pair(csvId, null)
-                        }
-                    }
-                }
-            }
-        }
-        if (phoneFoundInCsv) {
-            return Pair(null, "Incorrect password")
-        }
-    } catch (e: Exception) {
-        Log.e("Login", "CSV Error: ${e.message}")
-    }
-
-    // 2. Check SharedPreferences
-    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
-    val userJson = sharedPref.getString(phone, null)
-        ?: return Pair(null, "No account found with this phone number")
-
-    return try {
-        val gson = Gson()
-        val user = gson.fromJson(userJson, User::class.java)
-        if (user.Password == password) {
-            Pair(user.PatientID, null)
-        } else {
-            Pair(null, "Incorrect password")
-        }
-    } catch (e: Exception) {
-        Pair(null, "Error loading account data")
-    }
-
-}
+//fun validateAllUser(context: Context, phone: String, password: String): Pair<String?, String?> {
+//    // 1. Check CSV
+//    try {
+//        val inputStream = context.assets.open("patients.csv")
+//        val reader = BufferedReader(InputStreamReader(inputStream))
+//        var phoneFoundInCsv = false
+//
+//        reader.useLines { lines ->
+//            lines.drop(1).forEach { line ->
+//                val tokens = line.split(",")
+//                if (tokens.size >= 4) {
+//                    val csvId = tokens[0].trim()
+//                    val csvPhone = tokens[1].trim()
+//                    val csvPass = tokens[3].trim()
+//
+//                    if (csvPhone == phone) {
+//                        phoneFoundInCsv = true
+//                        if (csvPass == password) {
+//                            return Pair(csvId, null)
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        if (phoneFoundInCsv) {
+//            return Pair(null, "Incorrect password")
+//        }
+//    } catch (e: Exception) {
+//        Log.e("Login", "CSV Error: ${e.message}")
+//    }
+//
+//    // 2. Check SharedPreferences
+//    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
+//    val userJson = sharedPref.getString(phone, null)
+//        ?: return Pair(null, "No account found with this phone number")
+//
+//    return try {
+//        val gson = Gson()
+//        val user = gson.fromJson(userJson, User::class.java)
+//        if (user.Password == password) {
+//            Pair(user.PatientID, null)
+//        } else {
+//            Pair(null, "Incorrect password")
+//        }
+//    } catch (e: Exception) {
+//        Pair(null, "Error loading account data")
+//    }
+//
+//}
 
 // FOR PREVIEW ONLY
 @Preview(showBackground = true, name = "Login Screen Preview")

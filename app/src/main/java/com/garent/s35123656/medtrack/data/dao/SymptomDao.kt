@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import com.garent.s35123656.medtrack.Symptom
+import com.garent.s35123656.medtrack.data.entity.Symptom
 import kotlinx.coroutines.flow.Flow
 
 @Dao

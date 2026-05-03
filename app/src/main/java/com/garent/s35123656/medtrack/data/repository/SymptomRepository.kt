@@ -1,7 +1,8 @@
 package com.garent.s35123656.medtrack.data.repository
 
-import com.garent.s35123656.medtrack.Symptom
+
 import com.garent.s35123656.medtrack.data.dao.SymptomDao
+import com.garent.s35123656.medtrack.data.entity.Symptom
 import kotlinx.coroutines.flow.Flow
 
 class SymptomRepository(private val symptomDao: SymptomDao) {

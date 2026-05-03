@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import com.garent.s35123656.medtrack.data.entity.Symptom
 
 /**
  *  Main Symptoms screen
@@ -66,12 +67,15 @@ fun Symptoms(
 
 
     // State for the list
-    var symptomList by remember { mutableStateOf(listOf<Symptom>()) }
+//    var symptomList by remember { mutableStateOf(listOf<Symptom>()) }
 
     // Load list on first entry
-    LaunchedEffect(Unit) {
-        symptomList = getSymptomsForPatient(context, patientId)
-    }
+
+    val db = com.garent.s35123656.medtrack.data.database.MedTrackDatabase.getDatabase(context)
+
+    val symptomList: List<Symptom> by db.symptomDao()
+        .getSymptomsForPatient(patientId)
+        .collectAsState(initial = emptyList())
 
     // The Scaffold for the layout
     Box(modifier = modifier.fillMaxSize()) {
@@ -232,16 +236,24 @@ fun Symptoms(
                     else {
                         // SUCCESS MESSAGE
                         scope.launch {
+                            val newSymptom = com.garent.s35123656.medtrack.data.entity.Symptom(
+                                patientId = patientId,
+                                category = selectedCategory,
+                                severity = severity.toInt()
+                                    .toString(), // Converting float to string based on your entity
+                                notes = notes,
+                                dateTime = currentDateTime
+                            )
+                            db.symptomDao().insertSymptom(newSymptom)
+
                             snackbarHostState.showSnackbar("Success: symptom saved ^-^")
+
+                            // Clear form
+                            selectedCategory = "Select Category"
+                            severity = 0f
+                            notes = ""
+                            dateTime.value = "Select Date & Time"
                         }
-
-                        // Clear form
-                        selectedCategory = "Select Category"
-                        severity = 5f
-                        notes = ""
-                        dateTime.value = "Select Date & Time"
-
-                        Log.d("Symp Debug", "Form Cleared")
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -329,36 +341,36 @@ fun showDateTimePicker(context: Context, onDateTimeSelected: (String) -> Unit) {
 /**
  *  Getting symptoms from csv file
  */
-fun getSymptomsForPatient(context: android.content.Context, targetId: String): List<Symptom> {
-    val list = mutableListOf<Symptom>()
-    try {
-        //read file
-        val file = context.assets.open("symptoms.csv")
-
-
-        file.bufferedReader().useLines { lines ->
-
-            lines.drop(1).forEach { line ->
-                // split by comma
-                val tokens = line.split(",")
-                if (tokens.size >= 5 && tokens[0].trim() == targetId) {
-                    list.add(Symptom(
-                        category = tokens[1].trim(),
-                        severity = tokens[2].trim(),
-                        notes = tokens[3].trim(),
-                        dateTime = tokens[4].trim()
-                    ))
-                }
-            }
-        }
-    } catch (e: Exception) { e.printStackTrace() }
+//fun getSymptomsForPatient(context: android.content.Context, targetId: String): List<Symptom> {
+//    val list = mutableListOf<Symptom>()
+//    try {
+//        //read file
+//        val file = context.assets.open("symptoms.csv")
+//
+//
+//        file.bufferedReader().useLines { lines ->
+//
+//            lines.drop(1).forEach { line ->
+//                // split by comma
+//                val tokens = line.split(",")
+//                if (tokens.size >= 5 && tokens[0].trim() == targetId) {
+//                    list.add(Symptom(
+//                        category = tokens[1].trim(),
+//                        severity = tokens[2].trim(),
+//                        notes = tokens[3].trim(),
+//                        dateTime = tokens[4].trim()
+//                    ))
+//                }
+//            }
+//        }
+//    } catch (e: Exception) { e.printStackTrace() }
 
     // Sort by newest added
 //    return list.reversed()
 
     // Sort by date
-    return list.sortedByDescending { it.dateTime }
-}
+//    return list.sortedByDescending { it.dateTime }
+//}
 
 
 

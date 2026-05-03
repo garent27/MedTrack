@@ -40,12 +40,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.garent.s35123656.medtrack.data.database.MedTrackDatabase
+import com.garent.s35123656.medtrack.data.repository.MedicationRepository
+import com.garent.s35123656.medtrack.data.repository.PatientRepository
+import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import kotlin.jvm.java
 
@@ -69,7 +74,16 @@ class MainActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route ?: "welcome"
 
-                val db = com.garent.s35123656.medtrack.data.database.MedTrackDatabase.getDatabase(context)
+
+                // 1. Initialize Database and Repositories (The "Model" and "Repo" layers)
+                val db = MedTrackDatabase.getDatabase(context)
+                val patientRepo = PatientRepository(db.patientDao())
+                val medicationRepo = MedicationRepository(db.medicationDao())
+
+                // 2. Create the ViewModel using the Factory
+                val homeViewModel: HomeViewModel = viewModel(
+                    factory = HomeViewModel.HomeViewModelFactory(patientRepo, medicationRepo)
+                )
 
                 // Run the seeder silently in the background
                 LaunchedEffect(Unit) {
@@ -162,7 +176,7 @@ fun MedTrackNavHost(
              SignUp(navController = navController, snackbarHostState = snackbarHostState)
         }
         composable("home") {
-            Home(patientId = patientId)
+            Home(patientId = patientId, viewModel = homeViewModel)
         }
         composable("symptoms") {
             Symptoms(
@@ -174,7 +188,8 @@ fun MedTrackNavHost(
             AddMedication(
                 patientId = patientId,
                 navController = navController,
-                snackbarHostState = snackbarHostState
+                snackbarHostState = snackbarHostState,
+                viewModel = homeViewModel
             )
         }
     }

@@ -89,7 +89,7 @@ fun AddMedication(
 ) {
     val context = LocalContext.current
 
-
+    val db = com.garent.s35123656.medtrack.data.database.MedTrackDatabase.getDatabase(context)
     // recorded variables
     var medName by remember { mutableStateOf("") }
     var dosage by remember { mutableStateOf("") }
@@ -306,14 +306,15 @@ fun AddMedication(
                             val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
 
                             // 2. Create the Medication object using your specific fields
-                            val newMedication = MedicationData(
-                                medPetientID = patientId,
+                            val newMedication = com.garent.s35123656.medtrack.data.entity.Medication(
+                                patientId = patientId,
                                 medicationName = medName,
                                 dosage = dosage,
                                 frequency = selectedFreq,
                                 scheduledTime = timeState.value,
                                 medicationType = selectedType,
-                                notes = notes
+                                notes = notes,
+                                isTaken = false
                             )
 
                             // 3. Retrieve existing list for this patient
@@ -327,15 +328,16 @@ fun AddMedication(
                             }
 
                             // 4. Add the new entry and save back to SP
-                            medicationList.add(newMedication)
-                            val updatedJson = gson.toJson(medicationList)
+//                            medicationList.add(newMedication)
+//                            val updatedJson = gson.toJson(medicationList)
 
-                            sharedPref.edit {
-                                putString(patientId, updatedJson)
-                            }
+//                            sharedPref.edit {
+//                                putString(patientId, updatedJson)
+//                            }
 
 
                             scope.launch {
+                            db.medicationDao().insertMedication(newMedication)
                             snackbarHostState.showSnackbar("Success: Medication Added")
                             clearFields()
                             }
