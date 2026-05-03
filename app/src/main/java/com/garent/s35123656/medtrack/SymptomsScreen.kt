@@ -318,12 +318,12 @@ fun showDateTimePicker(context: Context, onDateTimeSelected: (String) -> Unit) {
 /**
  *  Symptom data class
  */
-data class Symptom(
-    val category: String,
-    val severity: String,
-    val notes: String,
-    val dateTime: String
-)
+//data class Symptom(
+//    val category: String,
+//    val severity: String,
+//    val notes: String,
+//    val dateTime: String
+//)
 
 
 /**

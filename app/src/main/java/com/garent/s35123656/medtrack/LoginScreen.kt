@@ -25,7 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.google.gson.Gson
+import kotlinx.coroutines.launch
 import kotlin.jvm.java
 
 /**
@@ -33,6 +35,7 @@ import kotlin.jvm.java
  */
 @Composable
 fun Login(
+    navController: NavController,
     onLoginSuccess: (String) -> Unit, // callback to talk to MainActivity
     modifier: Modifier = Modifier
 ) {
@@ -40,6 +43,9 @@ fun Login(
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
+
+    val db = com.garent.s35123656.medtrack.data.database.MedTrackDatabase.getDatabase(context)
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier
@@ -85,22 +91,22 @@ fun Login(
         // 5. Login Button with Logic
         Button(
             onClick = {
-                if (phone.isBlank() || password.isBlank()) {
-                    Toast.makeText(context, "Please enter both phone and password", Toast.LENGTH_SHORT).show()
-                } else {
-                    // Destructure the result: patientId is the ID, error is the message
-                    val (patientId, error) = validateAllUser(context, phone, password)
-
-                    if (patientId != null) {
-                        Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
-
-                        val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                        sharedPref.edit().putString("logged_in_id", patientId).apply()
-
-                        onLoginSuccess(patientId)
+                scope.launch {
+                    if (phone.isBlank() || password.isBlank()) {
+                        Toast.makeText(context, "Please enter both phone and password", Toast.LENGTH_SHORT).show()
                     } else {
-                        // Show the specific error message returned from the function
-                        Toast.makeText(context, error ?: "Login failed", Toast.LENGTH_SHORT).show()
+                        val patient = db.patientDao().getPatientByPhone(phone)
+
+                        if (patient == null) {
+                            Toast.makeText(context, "No account found with this phone number", Toast.LENGTH_SHORT).show()
+                        } else if (patient.password != password) {
+                            Toast.makeText(context, "Incorrect password", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
+                            val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                            sharedPref.edit().putString("logged_in_id", patient.patientId).apply()
+                            onLoginSuccess(patient.patientId)
+                        }
                     }
                 }
             },
@@ -121,8 +127,8 @@ fun Login(
             TextButton(
                 onClick = {
                     // Navigate to SignUpActivity (Leaving this as Intent for now assuming SignUp is still an Activity)
-                    val intent = Intent(context, SignUpScreen::class.java)
-                    context.startActivity(intent)
+                    navController.navigate("signup")
+
                 }
             ) {
                 Text("Sign Up", fontWeight = FontWeight.Bold)
@@ -188,6 +194,6 @@ fun validateAllUser(context: Context, phone: String, password: String): Pair<Str
 fun LoginScreenPrev() {
     MedTrackTheme {
         // Pass a dummy function {} so the preview doesn't break
-        Login(onLoginSuccess = {})
+//        Login(onLoginSuccess = {})
     }
 }

@@ -48,39 +48,45 @@ import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import androidx.core.content.edit
+import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 
-class AddMedication : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        val patientId = intent.getStringExtra("PATIENT_ID") ?: ""
-
-        setContent {
-            MedTrackTheme {
-                val snackbarHostState = remember { SnackbarHostState() }
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    snackbarHost = {SnackbarHost(snackbarHostState)}
-                ) { innerPadding ->
-                    AddMedication(
-                        patientId = patientId,
-                        modifier = Modifier.padding(innerPadding),
-                        snackbarHostState = snackbarHostState
-                    )
-                }
-            }
-        }
-    }
-}
+//class AddMedication : ComponentActivity() {
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//        enableEdgeToEdge()
+//        val patientId = intent.getStringExtra("PATIENT_ID") ?: ""
+//
+//        setContent {
+//            MedTrackTheme {
+//                val snackbarHostState = remember { SnackbarHostState() }
+//
+//                Scaffold(
+//                    modifier = Modifier.fillMaxSize(),
+//                    snackbarHost = {SnackbarHost(snackbarHostState)}
+//                ) { innerPadding ->
+//                    AddMedication(
+//                        patientId = patientId,
+//                        modifier = Modifier.padding(innerPadding),
+//                        snackbarHostState = snackbarHostState
+//                    )
+//                }
+//            }
+//        }
+//    }
+//}
 
 
 /**
  *  Main Add Medication screen
  */
 @Composable
-fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHostState: SnackbarHostState) {
+fun AddMedication(
+    patientId: String,
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState
+) {
     val context = LocalContext.current
 
 
@@ -337,7 +343,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
                             // wait then kill screen
                             scope.launch {
                                 delay(900)
-                                (context as? Activity)?.finish()
+                                navController.popBackStack() // Returns to Home
                             }
 
                         } else {
@@ -374,7 +380,7 @@ fun AddMedication(patientId: String, modifier: Modifier = Modifier, snackbarHost
                         android.util.Log.d("SAVED_DATA", "Stored JSON: $checkData")
 
                         // This returns the user to the previous activity in the stack
-                        (context as? Activity)?.finish()
+                        navController.popBackStack()
                     }
                 ) {
                     Text("Back to Home")
@@ -419,7 +425,7 @@ fun AddMedicationPreview() {
     MedTrackTheme {
         val dummySnackbarHostState = remember { SnackbarHostState() }
         // We pass a fake ID just to satisfy the function requirements
-        AddMedication(patientId = "P1001",snackbarHostState = dummySnackbarHostState)
+//        AddMedication(patientId = "P1001",snackbarHostState = dummySnackbarHostState)
     }
 }
 

@@ -1,0 +1,10 @@
+package com.garent.s35123656.medtrack.data.repository
+
+import com.garent.s35123656.medtrack.data.dao.PatientDao
+import com.garent.s35123656.medtrack.data.entity.Patient
+
+class PatientRepository(private val patientDao: PatientDao) {
+    suspend fun insertPatient(patient: Patient) = patientDao.insertPatient(patient)
+    suspend fun getPatientByPhone(phone: String) = patientDao.getPatientByPhone(phone)
+    suspend fun getPatientNameById(id: String) = patientDao.getPatientNameById(id)
+}

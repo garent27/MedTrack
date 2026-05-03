@@ -24,6 +24,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MedTrackTheme {
+
                 val navController = rememberNavController()
                 val snackbarHostState = remember { SnackbarHostState() }
                 val context = LocalContext.current
@@ -66,6 +68,13 @@ class MainActivity : ComponentActivity() {
                 // 2. Track current route to show/hide bars
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route ?: "welcome"
+
+                val db = com.garent.s35123656.medtrack.data.database.MedTrackDatabase.getDatabase(context)
+
+                // Run the seeder silently in the background
+                LaunchedEffect(Unit) {
+                    com.garent.s35123656.medtrack.data.seedDatabaseOnFirstLaunch(context, db)
+                }
 
                 Scaffold(
                     topBar = {
@@ -96,9 +105,7 @@ class MainActivity : ComponentActivity() {
                         // Shows logout fab only in home
                         if (currentRoute == "home") {
                             AddMedicationFAB(onClick = {
-                                val intent = Intent(context, AddMedication::class.java)
-                                intent.putExtra("PATIENT_ID", loggedInId)
-                                context.startActivity(intent)
+                                navController.navigate("add_medication")
                             })
                         }
                     }
@@ -148,7 +155,11 @@ fun MedTrackNavHost(
             WelcomeScreen(navController = navController)
         }
         composable("login") {
-            Login(onLoginSuccess = onLoginSuccess)
+
+            Login(navController = navController, onLoginSuccess = onLoginSuccess)
+        }
+        composable("signup") {
+             SignUp(navController = navController, snackbarHostState = snackbarHostState)
         }
         composable("home") {
             Home(patientId = patientId)
@@ -156,6 +167,13 @@ fun MedTrackNavHost(
         composable("symptoms") {
             Symptoms(
                 patientId = patientId,
+                snackbarHostState = snackbarHostState
+            )
+        }
+        composable("add_medication") {
+            AddMedication(
+                patientId = patientId,
+                navController = navController,
                 snackbarHostState = snackbarHostState
             )
         }
@@ -225,7 +243,7 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         // sign up button
         Button(
-            onClick = { context.startActivity(Intent(context, SignUpScreen::class.java)) },
+            onClick = { navController.navigate("signup") },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Sign Up")

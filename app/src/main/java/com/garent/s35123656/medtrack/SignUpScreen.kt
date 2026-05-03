@@ -39,41 +39,43 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import com.google.gson.Gson
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class SignUpScreen : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MedTrackTheme {
-                // 1. Move the SnackbarState here
-                val snackbarHostState = remember { SnackbarHostState() }
-
-                Scaffold(
-                    // 2. Attach the host here
-                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-                    modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
-                    // 3. Pass the state down so the function can still trigger messages
-                    SignUp(
-                        snackbarHostState = snackbarHostState,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
+//class SignUpScreen : ComponentActivity() {
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//        enableEdgeToEdge()
+//        setContent {
+//            MedTrackTheme {
+//                // 1. Move the SnackbarState here
+//                val snackbarHostState = remember { SnackbarHostState() }
+//
+//                Scaffold(
+//                    // 2. Attach the host here
+//                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+//                    modifier = Modifier.fillMaxSize()
+//                ) { innerPadding ->
+//                    // 3. Pass the state down so the function can still trigger messages
+//                    SignUp(
+//                        snackbarHostState = snackbarHostState,
+//                        modifier = Modifier.padding(innerPadding)
+//                    )
+//                }
+//            }
+//        }
+//    }
+//}
 
 /**
  *  Main Sign up Screen
  */
 @Composable
 fun SignUp(
+    navController: NavController,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
@@ -197,8 +199,8 @@ fun SignUp(
 
                     // wait then kill
                     scope.launch {
-                        delay(1500)
-                        (context as? Activity)?.finish()
+                        delay(1000)
+                        navController.popBackStack()
                     }
                 }
             },
@@ -207,7 +209,7 @@ fun SignUp(
             Text("Sign Up")
         }
 
-        TextButton(onClick = { (context as? Activity)?.finish() }) {
+        TextButton(onClick = { navController.popBackStack() }) {
             Text("Back to Login")
 
         }
@@ -335,6 +337,6 @@ fun LoginScreenPrev3() {
 
     MedTrackTheme {
         // 2. Pass the dummy state into your function
-        SignUp(snackbarHostState = dummySnackbarHostState)
+//        SignUp(snackbarHostState = dummySnackbarHostState)
     }
 }
