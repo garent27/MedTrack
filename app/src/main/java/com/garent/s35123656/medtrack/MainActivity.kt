@@ -54,6 +54,7 @@ import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 import com.garent.s35123656.medtrack.data.viewModel.LoginViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SymptomsViewModel
+import com.garent.s35123656.medtrack.data.viewModel.SettingsViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 
 /**
@@ -99,28 +100,33 @@ class MainActivity : ComponentActivity() {
                 val symptomsViewModel: SymptomsViewModel = viewModel(
                     factory = SymptomsViewModel.SymptomsViewModelFactory(symptomRepo)
                 )
+                val settingsViewModel: SettingsViewModel = viewModel(
+                    factory = SettingsViewModel.SettingsViewModelFactory(patientRepo)
+                )
 
                 // Run the database seeder on first launch
                 LaunchedEffect(Unit) {
                     com.garent.s35123656.medtrack.data.seedDatabaseOnFirstLaunch(context, db)
                 }
 
+                val onLogout = {
+                    sharedPref.edit().remove("logged_in_id").apply()
+                    loggedInId = null
+                    navController.navigate("welcome") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+
                 Scaffold(
                     topBar = {
                         // TopBar is only visible on the Home screen
                         if (currentRoute == "home") {
-                            MedTrackTopBar(onLogout = {
-                                sharedPref.edit().remove("logged_in_id").apply()
-                                loggedInId = null
-                                navController.navigate("welcome") {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            })
+                            MedTrackTopBar(onLogout = onLogout)
                         }
                     },
                     bottomBar = {
-                        // BottomBar is visible on Home and Symptoms screens
-                        if (currentRoute == "home" || currentRoute == "symptoms") {
+                        // BottomBar is visible on Home, Symptoms, and Settings screens
+                        if (currentRoute == "home" || currentRoute == "symptoms" || currentRoute == "settings") {
                             MedTrackBottomBar(
                                 currentScreen = currentRoute,
                                 patientId = loggedInId ?: "",
@@ -147,12 +153,14 @@ class MainActivity : ComponentActivity() {
                         loginViewModel = loginViewModel,
                         signUpViewModel = signUpViewModel,
                         symptomsViewModel = symptomsViewModel,
+                        settingsViewModel = settingsViewModel,
                         onLoginSuccess = { newId ->
                             loggedInId = newId
                             navController.navigate("home") {
                                 popUpTo("welcome") { inclusive = true }
                             }
                         },
+                        onLogout = onLogout,
                         snackbarHostState = snackbarHostState
                     )
                 }
@@ -173,7 +181,9 @@ fun MedTrackNavHost(
     loginViewModel: LoginViewModel,
     signUpViewModel: SignUpViewModel,
     symptomsViewModel: SymptomsViewModel,
+    settingsViewModel: SettingsViewModel,
     onLoginSuccess: (String) -> Unit,
+    onLogout: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     NavHost(
@@ -206,6 +216,14 @@ fun MedTrackNavHost(
                 patientId = patientId,
                 viewModel = symptomsViewModel,
                 snackbarHostState = snackbarHostState
+            )
+        }
+        composable("settings") {
+            SettingsScreen(
+                patientId = patientId,
+                viewModel = settingsViewModel,
+                onLogout = onLogout,
+                onClinicianLogin = { /* TODO: Navigate to Clinician Login */ }
             )
         }
         composable("add_medication") {

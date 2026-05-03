@@ -17,6 +17,9 @@ interface PatientDao {
     @Query("SELECT * FROM patients WHERE phoneNumber = :phone")
     suspend fun getPatientByPhone(phone: String): Patient?
 
+    @Query("SELECT * FROM patients WHERE patientId = :id")
+    suspend fun getPatientById(id: String): Patient?
+
     @Query("SELECT name FROM patients WHERE patientId = :id")
     suspend fun getPatientNameById(id: String): String?
 

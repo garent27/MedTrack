@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.runtime.collectAsState
 import com.garent.s35123656.medtrack.data.entity.Medication
 import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
+import androidx.compose.material.icons.filled.Settings
 
 /**
  * Main home screen
@@ -306,6 +307,7 @@ fun MedTrackBottomBar(
     navController: NavController
 ) {
     NavigationBar {
+        // Home Tab
         NavigationBarItem(
             selected = currentScreen == "home",
             onClick = {
@@ -321,6 +323,7 @@ fun MedTrackBottomBar(
             icon = { Icon(painterResource(android.R.drawable.ic_menu_today), null) }
         )
 
+        // Symptoms Tab
         NavigationBarItem(
             selected = currentScreen == "symptoms",
             onClick = {
@@ -334,6 +337,22 @@ fun MedTrackBottomBar(
             },
             label = { Text("Symptoms") },
             icon = { Icon(painterResource(android.R.drawable.ic_dialog_alert), null) }
+        )
+
+        // Settings Tab (NEW)
+        NavigationBarItem(
+            selected = currentScreen == "settings",
+            onClick = {
+                if (currentScreen != "settings") {
+                    navController.navigate("settings") {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
+            label = { Text("Settings") },
+            icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") }
         )
     }
 }
