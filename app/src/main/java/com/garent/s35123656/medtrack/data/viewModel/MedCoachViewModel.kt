@@ -42,23 +42,39 @@ class MedCoachViewModel(
     }
 
     fun searchDrug(name: String) {
-        if (name.isBlank()) return
+        if (name.isBlank()) {
+            drugErrorMessage = "Please enter a medication name."
+            drugInfo = null
+            return
+        }
         searchQuery = name
         viewModelScope.launch {
             isLoadingDrug = true
             drugErrorMessage = null
             drugInfo = null
-            
+
             val result = drugRepository.getDrugDetails(name)
             result.onSuccess { info ->
                 if (info != null) {
                     drugInfo = info
                 } else {
-                    drugErrorMessage = "Drug not found in FDA database."
+                    // Handle case where API returns 200 but results are empty
+                    drugErrorMessage = "No information found for \"$name\". Please check the spelling."
                 }
                 isLoadingDrug = false
             }.onFailure { error ->
-                drugErrorMessage = "Network error: ${error.message ?: "Unknown error"}"
+                // Specific error handling for network and API failures
+                drugErrorMessage = when (error) {
+                    is java.net.UnknownHostException ->
+                        "No internet connection. Please check your network and try again."
+                    is java.net.SocketTimeoutException ->
+                        "The request timed out. The FDA server might be busy, please try again."
+                    is retrofit2.HttpException -> {
+                        if (error.code() == 404) "Medication not found. Please check the drug name spelling."
+                        else "FDA Service error (Code: ${error.code()}). Please try again later."
+                    }
+                    else -> "An unexpected error occurred while searching for \"$name\"."
+                }
                 isLoadingDrug = false
             }
         }
