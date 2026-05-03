@@ -55,6 +55,7 @@ import com.garent.s35123656.medtrack.data.viewModel.LoginViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SymptomsViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SettingsViewModel
+import com.garent.s35123656.medtrack.data.viewModel.ClaimAccountViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 
 /**
@@ -102,6 +103,9 @@ class MainActivity : ComponentActivity() {
                 )
                 val settingsViewModel: SettingsViewModel = viewModel(
                     factory = SettingsViewModel.SettingsViewModelFactory(patientRepo)
+                )
+                val claimAccountViewModel: ClaimAccountViewModel = viewModel(
+                    factory = ClaimAccountViewModel.ClaimAccountViewModelFactory(patientRepo)
                 )
 
                 // Run the database seeder on first launch
@@ -154,6 +158,7 @@ class MainActivity : ComponentActivity() {
                         signUpViewModel = signUpViewModel,
                         symptomsViewModel = symptomsViewModel,
                         settingsViewModel = settingsViewModel,
+                        claimAccountViewModel = claimAccountViewModel,
                         onLoginSuccess = { newId ->
                             loggedInId = newId
                             navController.navigate("home") {
@@ -182,6 +187,7 @@ fun MedTrackNavHost(
     signUpViewModel: SignUpViewModel,
     symptomsViewModel: SymptomsViewModel,
     settingsViewModel: SettingsViewModel,
+    claimAccountViewModel: ClaimAccountViewModel,
     onLoginSuccess: (String) -> Unit,
     onLogout: () -> Unit,
     snackbarHostState: SnackbarHostState
@@ -207,6 +213,12 @@ fun MedTrackNavHost(
                  viewModel = signUpViewModel,
                  snackbarHostState = snackbarHostState
              )
+        }
+        composable("claim_account") {
+            ClaimAccount(
+                navController = navController,
+                viewModel = claimAccountViewModel
+            )
         }
         composable("home") {
             Home(patientId = patientId, viewModel = homeViewModel)

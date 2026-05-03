@@ -21,9 +21,8 @@ import com.garent.s35123656.medtrack.data.viewModel.LoginViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 
 /**
- * Login screen for user authentication.
+ * Login screen for user authentication using PatientID and Password.
  * Follows MVVM: Delegates logic to LoginViewModel.
- * Form state is managed by the ViewModel to survive rotation.
  */
 @Composable
 fun Login(
@@ -32,7 +31,7 @@ fun Login(
     onLoginSuccess: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val phone = viewModel.phone
+    val patientId = viewModel.patientId
     val password = viewModel.password
     val context = LocalContext.current
 
@@ -63,16 +62,23 @@ fun Login(
         Image(
             painter = painterResource(id = R.drawable.medtrack),
             contentDescription = "MedTrack Logo",
-            modifier = Modifier.size(200.dp)
+            modifier = Modifier.size(180.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Welcome Back",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
-            value = phone,
-            onValueChange = { viewModel.phone = it },
-            label = { Text("Phone Number") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            value = patientId,
+            onValueChange = { viewModel.patientId = it },
+            label = { Text("Patient ID (e.g. P1001)") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -98,6 +104,14 @@ fun Login(
             Text("Login")
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextButton(
+            onClick = { navController.navigate("claim_account") }
+        ) {
+            Text("Claim Account (CSV Users)", fontWeight = FontWeight.SemiBold)
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
@@ -113,13 +127,5 @@ fun Login(
                 Text("Sign Up", fontWeight = FontWeight.Bold)
             }
         }
-    }
-}
-
-@Preview(showBackground = true, name = "Login Screen Preview")
-@Composable
-fun LoginScreenPrev() {
-    MedTrackTheme {
-        // Preview would require a mock ViewModel or similar
     }
 }

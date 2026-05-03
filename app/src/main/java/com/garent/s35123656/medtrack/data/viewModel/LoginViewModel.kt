@@ -13,23 +13,28 @@ import kotlinx.coroutines.launch
 
 class LoginViewModel(private val patientRepo: PatientRepository) : ViewModel() {
 
-    // --- Login Form State (Persists across rotation) ---
-    var phone by mutableStateOf("")
+    // --- Login Form State ---
+    var patientId by mutableStateOf("")
     var password by mutableStateOf("")
 
     private val _loginResult = MutableSharedFlow<LoginResult>()
     val loginResult = _loginResult.asSharedFlow()
 
+    /**
+     * Authenticates the user against the Room database using PatientID and Password.
+     */
     fun login() {
         viewModelScope.launch {
-            if (phone.isBlank() || password.isBlank()) {
-                _loginResult.emit(LoginResult.Error("Please enter both phone and password"))
+            if (patientId.isBlank() || password.isBlank()) {
+                _loginResult.emit(LoginResult.Error("Please enter both PatientID and password"))
                 return@launch
             }
 
-            val patient = patientRepo.getPatientByPhone(phone)
+            val patient = patientRepo.getPatientById(patientId)
             if (patient == null) {
-                _loginResult.emit(LoginResult.Error("No account found with this phone number"))
+                _loginResult.emit(LoginResult.Error("Account not found. If you are from the CSV, please claim your account first."))
+            } else if (patient.password.isEmpty()) {
+                _loginResult.emit(LoginResult.Error("This account has not been claimed yet. Please use the Claim Account option."))
             } else if (patient.password != password) {
                 _loginResult.emit(LoginResult.Error("Incorrect password"))
             } else {

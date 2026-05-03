@@ -29,12 +29,15 @@ suspend fun seedDatabaseOnFirstLaunch(context: Context, database: MedTrackDataba
                 lines.drop(1).forEach { line ->
                     val tokens = line.split(",")
                     if (tokens.size >= 4) {
+                        // The requirement says NOT to import password from CSV for account claiming
+                        // We set password to an empty string so they must claim it
                         patientsToInsert.add(
-                            Patient(tokens[0].trim(), tokens[1].trim(), tokens[2].trim(), tokens[3].trim())
+                            Patient(tokens[0].trim(), tokens[1].trim(), tokens[2].trim(), "")
                         )
                     }
                 }
             }
+            // Also migrate legacy SharedPreferences users if any (optional based on your A1 implementation)
             val usersPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
             usersPref.all.values.forEach { json ->
                 try {
