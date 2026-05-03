@@ -1,11 +1,5 @@
 package com.garent.s35123656.medtrack
 
-import android.app.Activity
-import android.content.Context
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -19,20 +13,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -40,66 +27,46 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
-import com.google.gson.Gson
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-
-//class SignUpScreen : ComponentActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
-//        setContent {
-//            MedTrackTheme {
-//                // 1. Move the SnackbarState here
-//                val snackbarHostState = remember { SnackbarHostState() }
-//
-//                Scaffold(
-//                    // 2. Attach the host here
-//                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-//                    modifier = Modifier.fillMaxSize()
-//                ) { innerPadding ->
-//                    // 3. Pass the state down so the function can still trigger messages
-//                    SignUp(
-//                        snackbarHostState = snackbarHostState,
-//                        modifier = Modifier.padding(innerPadding)
-//                    )
-//                }
-//            }
-//        }
-//    }
-//}
 
 /**
- *  Main Sign up Screen
+ * Sign Up screen for new user registration.
+ * Follows MVVM: Delegates database operations and validation logic to SignUpViewModel.
+ * Form state is managed by the ViewModel to survive rotation.
  */
 @Composable
 fun SignUp(
     navController: NavController,
+    viewModel: SignUpViewModel,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    // UI State for input fields - Now managed by ViewModel
+    val fullName = viewModel.fullName
+    val phone = viewModel.phone
+    val password = viewModel.password
+    val confirmPassword = viewModel.confirmPassword
 
-    // user variables
-    var fullName by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-
-    // Error States
-    var nameError by remember { mutableStateOf<String?>(null) }
-    var phoneError by remember { mutableStateOf<String?>(null) }
-    var passwordError by remember { mutableStateOf<String?>(null) }
-    var confirmError by remember { mutableStateOf<String?>(null) }
-
-    // snackbar messages
-    val scope = rememberCoroutineScope() // Required for launching the snackbar
-
-    val db = com.garent.s35123656.medtrack.data.database.MedTrackDatabase.getDatabase(context)
+    // Observe registration results from the ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.signUpResult.collect { result ->
+            when (result) {
+                is SignUpViewModel.SignUpResult.Success -> {
+                    snackbarHostState.showSnackbar("Account created successfully!!")
+                    delay(1000)
+                    navController.popBackStack()
+                }
+                is SignUpViewModel.SignUpResult.Error -> {
+                    snackbarHostState.showSnackbar(result.message)
+                }
+            }
+        }
+    }
 
     Column(
-        modifier = modifier // Use the modifier from the Activity
+        modifier = modifier
             .fillMaxSize()
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
@@ -115,83 +82,50 @@ fun SignUp(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Full Name Field
         ValidatedTextField(
             value = fullName,
-            onValueChange = { fullName = it; nameError = null },
+            onValueChange = { viewModel.fullName = it },
             label = "Full Name",
-            error = nameError
+            error = null
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Phone Number Field
         ValidatedTextField(
             value = phone,
-            onValueChange = { phone = it; phoneError = null },
+            onValueChange = { viewModel.phone = it },
             label = "Phone Number (starts with 04)",
-            error = phoneError,
+            error = null,
             keyboardType = KeyboardType.Phone
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Password Field
         ValidatedTextField(
             value = password,
-            onValueChange = { password = it; passwordError = null },
+            onValueChange = { viewModel.password = it },
             label = "Password (8+ chars, letter & number)",
-            error = passwordError,
+            error = null,
             isPassword = true
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Confirm Password Field
         ValidatedTextField(
             value = confirmPassword,
-            onValueChange = { confirmPassword = it; confirmError = null },
+            onValueChange = { viewModel.confirmPassword = it },
             label = "Confirm Password",
-            error = confirmError,
+            error = if (confirmPassword.isNotEmpty() && confirmPassword != password) "Passwords do not match" else null,
             isPassword = true
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Sign Up Button
         Button(
-            // check all the inputs
             onClick = {
-                scope.launch {
-                    // Check if phone exists in DB
-                    val existingUser = db.patientDao().getPatientByPhone(phone)
-                    if (existingUser != null) {
-                        phoneError = "This phone number is already registered"
-                        return@launch
-                    }
-
-                    // Validation logic stays the same...
-                    // if (nameError == null && ... ) {
-
-                    // Generate new ID
-                    val lastId = db.patientDao().getLastPatientId()
-                    val nextNum = (lastId?.removePrefix("P")?.toIntOrNull() ?: 1000) + 1
-                    val newPatientId = "P$nextNum"
-
-                    // Insert into DB
-                    val newPatient = com.garent.s35123656.medtrack.data.entity.Patient(
-                        patientId = newPatientId,
-                        phoneNumber = phone,
-                        name = fullName,
-                        password = password
-                    )
-                    db.patientDao().insertPatient(newPatient)
-
-                    snackbarHostState.showSnackbar("Account created successfully!!")
-                    delay(1000)
-                    navController.popBackStack()
+                if (password == confirmPassword) {
+                    viewModel.signUp()
                 }
-
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -200,13 +134,12 @@ fun SignUp(
 
         TextButton(onClick = { navController.popBackStack() }) {
             Text("Back to Login")
-
         }
     }
 }
 
 /**
- *  Text Field with error validation
+ * A reusable text field component with built-in error display.
  */
 @Composable
 fun ValidatedTextField(
@@ -218,7 +151,6 @@ fun ValidatedTextField(
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        // Display the outlined text field
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -229,7 +161,6 @@ fun ValidatedTextField(
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             singleLine = true
         )
-        // display error if exist
         if (error != null) {
             Text(
                 text = error,
@@ -241,91 +172,10 @@ fun ValidatedTextField(
     }
 }
 
-/**
- *  Fucntion to check if phone number entered is unique
- */
-//fun checkUniquePhone(context: Context, phone: String): Boolean {
-//    // 1. Check CSV
-//    try {
-//        context.assets.open("patients.csv").bufferedReader().useLines { lines ->
-//            if (lines.any { it.split(",").getOrNull(1)?.trim() == phone }) return false
-//        }
-//    } catch (e: Exception) { e.printStackTrace() }
-//
-//    // 2. Check SharedPreferences
-//    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
-//    // We store users with phone as the key
-//    return !sharedPref.contains(phone)
-//}
-
-/**
- *  Function to save new user after sign up
- */
-fun saveNewUser(context: Context, name: String, phone: String, pass: String) {
-    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
-    val gson = Gson()
-
-    val nextId = generateNextPatientId(context)
-    val newUser = User(
-        PatientID = nextId,
-        PhoneNumber = phone,
-        Name = name,
-        Password = pass
-    )
-
-    val userJson = gson.toJson(newUser)
-
-    sharedPref.edit().putString(phone, userJson).apply()
-}
-
-fun generateNextPatientId(context: Context): String {
-    val ids = mutableListOf<Int>()
-
-    // 1. Check CSV for IDs
-    try {
-        context.assets.open("patients.csv").bufferedReader().useLines { lines ->
-            lines.drop(1).forEach { line ->
-                val idPart = line.split(",").getOrNull(0)?.removePrefix("P")?.toIntOrNull()
-                if (idPart != null) ids.add(idPart)
-            }
-        }
-    } catch (e: Exception) { e.printStackTrace() }
-
-    // 2. Check SharedPreferences for IDs
-    val sharedPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
-    val allEntries = sharedPref.all
-    val gson = Gson()
-
-    allEntries.values.forEach { json ->
-        val user = gson.fromJson(json.toString(), User::class.java)
-        val idPart = user.PatientID.removePrefix("P").toIntOrNull()
-        if (idPart != null) ids.add(idPart)
-    }
-
-    // 3. Find max and increment
-    val nextId = (ids.maxOrNull() ?: 1000) + 1
-    return "P$nextId"
-}
-
-/**
- *  data class to store user details
- */
-data class User(
-    val PatientID: String,
-    val PhoneNumber: String,
-    val Name: String,
-    val Password: String
-)
-
-
-@Preview(showBackground = true, name = "Home Screen Preview")
+@Preview(showBackground = true, name = "Sign Up Screen Preview")
 @Composable
-fun LoginScreenPrev3() {
-    // 1. Create a dummy state just for the preview
-    val dummySnackbarHostState = remember { SnackbarHostState() }
-
+fun SignUpPreview() {
     MedTrackTheme {
-        // 2. Pass the dummy state into your function
-//        SignUp(snackbarHostState = dummySnackbarHostState)
+        // Preview logic
     }
 }

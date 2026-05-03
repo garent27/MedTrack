@@ -7,4 +7,5 @@ class PatientRepository(private val patientDao: PatientDao) {
     suspend fun insertPatient(patient: Patient) = patientDao.insertPatient(patient)
     suspend fun getPatientByPhone(phone: String) = patientDao.getPatientByPhone(phone)
     suspend fun getPatientNameById(id: String) = patientDao.getPatientNameById(id)
+    suspend fun getLastPatientId() = patientDao.getLastPatientId()
 }

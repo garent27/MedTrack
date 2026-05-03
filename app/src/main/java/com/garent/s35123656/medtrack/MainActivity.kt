@@ -1,7 +1,6 @@
 package com.garent.s35123656.medtrack
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,10 +49,18 @@ import androidx.navigation.compose.rememberNavController
 import com.garent.s35123656.medtrack.data.database.MedTrackDatabase
 import com.garent.s35123656.medtrack.data.repository.MedicationRepository
 import com.garent.s35123656.medtrack.data.repository.PatientRepository
+import com.garent.s35123656.medtrack.data.repository.SymptomRepository
 import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
+import com.garent.s35123656.medtrack.data.viewModel.LoginViewModel
+import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
+import com.garent.s35123656.medtrack.data.viewModel.SymptomsViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
-import kotlin.jvm.java
 
+/**
+ * MainActivity serves as the entry point of the application.
+ * It initializes the database, repositories, and root ViewModels.
+ * It also manages the overall layout (Scaffold) and navigation (NavHost).
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,51 +68,58 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MedTrackTheme {
-
                 val navController = rememberNavController()
                 val snackbarHostState = remember { SnackbarHostState() }
                 val context = LocalContext.current
 
-                // 1. Session Check
+                // 1. Session Check (Simple session management using SharedPreferences)
                 val sharedPref = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
                 var loggedInId by remember { mutableStateOf(sharedPref.getString("logged_in_id", null)) }
 
-                // 2. Track current route to show/hide bars
+                // 2. Track current route to show/hide UI bars (TopBar, BottomBar, FAB)
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route ?: "welcome"
 
-
-                // 1. Initialize Database and Repositories (The "Model" and "Repo" layers)
+                // 3. Initialize Database and Repositories (The "Model" layer)
                 val db = MedTrackDatabase.getDatabase(context)
                 val patientRepo = PatientRepository(db.patientDao())
                 val medicationRepo = MedicationRepository(db.medicationDao())
+                val symptomRepo = SymptomRepository(db.symptomDao())
 
-                // 2. Create the ViewModel using the Factory
+                // 4. Initialize ViewModels (The "ViewModel" layer)
                 val homeViewModel: HomeViewModel = viewModel(
                     factory = HomeViewModel.HomeViewModelFactory(patientRepo, medicationRepo)
                 )
+                val loginViewModel: LoginViewModel = viewModel(
+                    factory = LoginViewModel.LoginViewModelFactory(patientRepo)
+                )
+                val signUpViewModel: SignUpViewModel = viewModel(
+                    factory = SignUpViewModel.SignUpViewModelFactory(patientRepo)
+                )
+                val symptomsViewModel: SymptomsViewModel = viewModel(
+                    factory = SymptomsViewModel.SymptomsViewModelFactory(symptomRepo)
+                )
 
-                // Run the seeder silently in the background
+                // Run the database seeder on first launch
                 LaunchedEffect(Unit) {
                     com.garent.s35123656.medtrack.data.seedDatabaseOnFirstLaunch(context, db)
                 }
 
                 Scaffold(
                     topBar = {
-                        // Only show TopBar on Home
+                        // TopBar is only visible on the Home screen
                         if (currentRoute == "home") {
                             MedTrackTopBar(onLogout = {
-                                // Clear session and navigate back to welcome
                                 sharedPref.edit().remove("logged_in_id").apply()
                                 loggedInId = null
                                 navController.navigate("welcome") {
-                                    popUpTo(0) { inclusive = true } // Wipe history
+                                    popUpTo(0) { inclusive = true }
                                 }
                             })
                         }
                     },
                     bottomBar = {
-                        // Show BottomBar only on Home and Symptoms
+                        // BottomBar is visible on Home and Symptoms screens
                         if (currentRoute == "home" || currentRoute == "symptoms") {
                             MedTrackBottomBar(
                                 currentScreen = currentRoute,
@@ -116,7 +130,7 @@ class MainActivity : ComponentActivity() {
                     },
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     floatingActionButton = {
-                        // Shows logout fab only in home
+                        // FAB for adding medication, visible only on the Home screen
                         if (currentRoute == "home") {
                             AddMedicationFAB(onClick = {
                                 navController.navigate("add_medication")
@@ -124,12 +138,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
-
-                    // Call extracted NavHost component here
+                    // Root Navigation Host
                     MedTrackNavHost(
                         navController = navController,
                         innerPadding = innerPadding,
                         patientId = loggedInId ?: "",
+                        homeViewModel = homeViewModel,
+                        loginViewModel = loginViewModel,
+                        signUpViewModel = signUpViewModel,
+                        symptomsViewModel = symptomsViewModel,
                         onLoginSuccess = { newId ->
                             loggedInId = newId
                             navController.navigate("home") {
@@ -138,30 +155,29 @@ class MainActivity : ComponentActivity() {
                         },
                         snackbarHostState = snackbarHostState
                     )
-
                 }
             }
         }
     }
 }
 
-
 /**
- *  Main navigation for welcome, login, home and symptoms
+ * Main navigation host defining the screens and passing necessary ViewModels.
  */
 @Composable
 fun MedTrackNavHost(
     navController: NavHostController,
     innerPadding: PaddingValues,
     patientId: String,
+    homeViewModel: HomeViewModel,
+    loginViewModel: LoginViewModel,
+    signUpViewModel: SignUpViewModel,
+    symptomsViewModel: SymptomsViewModel,
     onLoginSuccess: (String) -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
-    // for navigation between welcome, login, home and symptoms
     NavHost(
         navController = navController,
-
-        // set start destination
         startDestination = if (patientId.isNotEmpty()) "home" else "welcome",
         modifier = Modifier.padding(innerPadding)
     ) {
@@ -169,11 +185,18 @@ fun MedTrackNavHost(
             WelcomeScreen(navController = navController)
         }
         composable("login") {
-
-            Login(navController = navController, onLoginSuccess = onLoginSuccess)
+            Login(
+                navController = navController,
+                viewModel = loginViewModel,
+                onLoginSuccess = onLoginSuccess
+            )
         }
         composable("signup") {
-             SignUp(navController = navController, snackbarHostState = snackbarHostState)
+             SignUp(
+                 navController = navController,
+                 viewModel = signUpViewModel,
+                 snackbarHostState = snackbarHostState
+             )
         }
         composable("home") {
             Home(patientId = patientId, viewModel = homeViewModel)
@@ -181,6 +204,7 @@ fun MedTrackNavHost(
         composable("symptoms") {
             Symptoms(
                 patientId = patientId,
+                viewModel = symptomsViewModel,
                 snackbarHostState = snackbarHostState
             )
         }
@@ -196,11 +220,10 @@ fun MedTrackNavHost(
 }
 
 /**
- *  Main welcome screen
+ * Main welcome screen of the application.
  */
 @Composable
 fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
     Column(
@@ -210,7 +233,6 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Med track Image
         Image(
             painter = painterResource(id = R.drawable.medtrack),
             contentDescription = "App Logo",
@@ -219,7 +241,6 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Medtrack title
         Text(
             text = "MedTrack",
             fontSize = 42.sp,
@@ -229,7 +250,6 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // description
         Text(
             text = "This app is for tracking purposes only and does not replace professional medical advice.",
             style = MaterialTheme.typography.bodySmall,
@@ -239,14 +259,12 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // goes to monash health webstie
         TextButton(onClick = { uriHandler.openUri("https://www.monashhealth.org") }) {
             Text("Visit Monash Health Clinic")
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // login button
         Button(
             onClick = { navController.navigate("login") },
             modifier = Modifier.fillMaxWidth()
@@ -256,7 +274,6 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // sign up button
         Button(
             onClick = { navController.navigate("signup") },
             modifier = Modifier.fillMaxWidth()
@@ -266,7 +283,6 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // my detail text
         Text(
             text = "By Garent Ngor Jun Hoe (35123656)",
             style = MaterialTheme.typography.labelLarge,
@@ -279,7 +295,6 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
 @Composable
 fun MainPreview() {
     MedTrackTheme {
-        // Must provide a dummy NavController for the preview to compile
         WelcomeScreen(navController = rememberNavController())
     }
 }
