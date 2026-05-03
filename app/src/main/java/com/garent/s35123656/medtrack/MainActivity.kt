@@ -51,6 +51,7 @@ import com.garent.s35123656.medtrack.data.repository.DrugRepository
 import com.garent.s35123656.medtrack.data.repository.MedicationRepository
 import com.garent.s35123656.medtrack.data.repository.PatientRepository
 import com.garent.s35123656.medtrack.data.repository.SymptomRepository
+import com.garent.s35123656.medtrack.data.repository.MedCoachRepository
 import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 import com.garent.s35123656.medtrack.data.viewModel.LoginViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
@@ -90,6 +91,7 @@ class MainActivity : ComponentActivity() {
                 val medicationRepo = MedicationRepository(db.medicationDao())
                 val symptomRepo = SymptomRepository(db.symptomDao())
                 val drugRepo = DrugRepository()
+                val medCoachRepo = MedCoachRepository(db.medCoachTipDao())
 
                 // 4. Initialize ViewModels (The "ViewModel" layer)
                 val homeViewModel: HomeViewModel = viewModel(
@@ -111,7 +113,7 @@ class MainActivity : ComponentActivity() {
                     factory = ClaimAccountViewModel.ClaimAccountViewModelFactory(patientRepo)
                 )
                 val medCoachViewModel: MedCoachViewModel = viewModel(
-                    factory = MedCoachViewModel.MedCoachViewModelFactory(drugRepo, medicationRepo)
+                    factory = MedCoachViewModel.MedCoachViewModelFactory(drugRepo, medicationRepo, medCoachRepo)
                 )
 
                 // Run the database seeder on first launch

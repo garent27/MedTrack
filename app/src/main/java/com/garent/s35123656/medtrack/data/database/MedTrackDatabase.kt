@@ -7,15 +7,19 @@ import androidx.room.RoomDatabase
 import com.garent.s35123656.medtrack.data.dao.MedicationDao
 import com.garent.s35123656.medtrack.data.dao.PatientDao
 import com.garent.s35123656.medtrack.data.dao.SymptomDao
+import com.garent.s35123656.medtrack.data.dao.MedCoachTipDao
 import com.garent.s35123656.medtrack.data.entity.Medication
 import com.garent.s35123656.medtrack.data.entity.Patient
 import com.garent.s35123656.medtrack.data.entity.Symptom
-@Database(entities = [Patient::class, Medication::class, Symptom::class], version = 1, exportSchema = false)
+import com.garent.s35123656.medtrack.data.entity.MedCoachTip
+
+@Database(entities = [Patient::class, Medication::class, Symptom::class, MedCoachTip::class], version = 2, exportSchema = false)
 abstract class MedTrackDatabase : RoomDatabase() {
 
     abstract fun patientDao(): PatientDao
     abstract fun medicationDao(): MedicationDao
     abstract fun symptomDao(): SymptomDao
+    abstract fun medCoachTipDao(): MedCoachTipDao
 
     companion object {
         @Volatile
@@ -24,6 +28,7 @@ abstract class MedTrackDatabase : RoomDatabase() {
         fun getDatabase(context: Context): MedTrackDatabase {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(context, MedTrackDatabase::class.java, "medtrack_database")
+                    .fallbackToDestructiveMigration()
                     .build().also { Instance = it }
             }
         }
