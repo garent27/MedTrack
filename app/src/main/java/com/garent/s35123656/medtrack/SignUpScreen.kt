@@ -1,5 +1,6 @@
 package com.garent.s35123656.medtrack
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -48,18 +50,19 @@ fun SignUp(
     val phone = viewModel.phone
     val password = viewModel.password
     val confirmPassword = viewModel.confirmPassword
+    val context = LocalContext.current
+
 
     // Observe registration results from the ViewModel
     LaunchedEffect(Unit) {
         viewModel.signUpResult.collect { result ->
             when (result) {
                 is SignUpViewModel.SignUpResult.Success -> {
-                    snackbarHostState.showSnackbar("Account created successfully!!")
-                    delay(1000)
+                    Toast.makeText(context, "Account created successfully!!", Toast.LENGTH_SHORT).show()
                     navController.popBackStack()
                 }
                 is SignUpViewModel.SignUpResult.Error -> {
-                    snackbarHostState.showSnackbar(result.message)
+                    Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
                 }
             }
         }

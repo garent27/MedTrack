@@ -42,9 +42,17 @@ class ClaimAccountViewModel(private val patientRepo: PatientRepository) : ViewMo
                 // Update password
                 val updatedPatient = patient.copy(password = newPassword)
                 patientRepo.updatePatient(updatedPatient)
+                clearFields()
                 _claimResult.emit(ClaimResult.Success)
             }
         }
+    }
+
+    fun clearFields() {
+        patientId = ""
+        phone = ""
+        newPassword = ""
+        confirmPassword = ""
     }
 
     sealed class ClaimResult {

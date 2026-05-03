@@ -3,6 +3,7 @@ package com.garent.s35123656.medtrack
 import android.annotation.SuppressLint
 import android.app.TimePickerDialog
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -208,8 +209,7 @@ fun AddMedication(
                             // Use ViewModel to add medication
                             viewModel.addMedication(newMedication) {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Success: Medication Added")
-                                    delay(900)
+                                    Toast.makeText(context, "Success: Medication Added", Toast.LENGTH_SHORT).show()
                                     navController.popBackStack()
                                 }
                             }
