@@ -52,6 +52,7 @@ import androidx.compose.runtime.collectAsState
 import com.garent.s35123656.medtrack.data.entity.Medication
 import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.HealthAndSafety
 
 /**
  * Main home screen
@@ -84,15 +85,29 @@ fun Home(patientId: String, viewModel: HomeViewModel, modifier: Modifier = Modif
             .fillMaxSize()
             .padding(24.dp)
     ) {
-        // Welcome text
-        Text(
-            text = "Hello, $patientName",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+        // Welcome section with Patient ID for reminder
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column {
+                Text(
+                    text = "Hello, $patientName",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "ID: $patientId",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Current date display
         Text(
@@ -298,7 +313,7 @@ data class MedicationData(
 )
 
 /**
- * Bottom navigation bar for switching between Home and Symptoms.
+ * Bottom navigation bar for switching between core screens.
  */
 @Composable
 fun MedTrackBottomBar(
@@ -339,7 +354,23 @@ fun MedTrackBottomBar(
             icon = { Icon(painterResource(android.R.drawable.ic_dialog_alert), null) }
         )
 
-        // Settings Tab (NEW)
+        // MedCoach Tab
+        NavigationBarItem(
+            selected = currentScreen == "med_coach",
+            onClick = {
+                if (currentScreen != "med_coach") {
+                    navController.navigate("med_coach") {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
+            label = { Text("Coach") },
+            icon = { Icon(Icons.Filled.HealthAndSafety, contentDescription = "MedCoach") }
+        )
+
+        // Settings Tab
         NavigationBarItem(
             selected = currentScreen == "settings",
             onClick = {

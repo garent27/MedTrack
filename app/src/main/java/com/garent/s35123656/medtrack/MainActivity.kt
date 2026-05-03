@@ -47,6 +47,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.garent.s35123656.medtrack.data.database.MedTrackDatabase
+import com.garent.s35123656.medtrack.data.repository.DrugRepository
 import com.garent.s35123656.medtrack.data.repository.MedicationRepository
 import com.garent.s35123656.medtrack.data.repository.PatientRepository
 import com.garent.s35123656.medtrack.data.repository.SymptomRepository
@@ -56,6 +57,7 @@ import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SymptomsViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SettingsViewModel
 import com.garent.s35123656.medtrack.data.viewModel.ClaimAccountViewModel
+import com.garent.s35123656.medtrack.data.viewModel.MedCoachViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 
 /**
@@ -87,6 +89,7 @@ class MainActivity : ComponentActivity() {
                 val patientRepo = PatientRepository(db.patientDao())
                 val medicationRepo = MedicationRepository(db.medicationDao())
                 val symptomRepo = SymptomRepository(db.symptomDao())
+                val drugRepo = DrugRepository()
 
                 // 4. Initialize ViewModels (The "ViewModel" layer)
                 val homeViewModel: HomeViewModel = viewModel(
@@ -106,6 +109,9 @@ class MainActivity : ComponentActivity() {
                 )
                 val claimAccountViewModel: ClaimAccountViewModel = viewModel(
                     factory = ClaimAccountViewModel.ClaimAccountViewModelFactory(patientRepo)
+                )
+                val medCoachViewModel: MedCoachViewModel = viewModel(
+                    factory = MedCoachViewModel.MedCoachViewModelFactory(drugRepo, medicationRepo)
                 )
 
                 // Run the database seeder on first launch
@@ -129,8 +135,9 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     bottomBar = {
-                        // BottomBar is visible on Home, Symptoms, and Settings screens
-                        if (currentRoute == "home" || currentRoute == "symptoms" || currentRoute == "settings") {
+                        // BottomBar is visible on core screens
+                        val coreScreens = listOf("home", "symptoms", "med_coach", "settings")
+                        if (currentRoute in coreScreens) {
                             MedTrackBottomBar(
                                 currentScreen = currentRoute,
                                 patientId = loggedInId ?: "",
@@ -159,6 +166,7 @@ class MainActivity : ComponentActivity() {
                         symptomsViewModel = symptomsViewModel,
                         settingsViewModel = settingsViewModel,
                         claimAccountViewModel = claimAccountViewModel,
+                        medCoachViewModel = medCoachViewModel,
                         onLoginSuccess = { newId ->
                             loggedInId = newId
                             navController.navigate("home") {
@@ -188,6 +196,7 @@ fun MedTrackNavHost(
     symptomsViewModel: SymptomsViewModel,
     settingsViewModel: SettingsViewModel,
     claimAccountViewModel: ClaimAccountViewModel,
+    medCoachViewModel: MedCoachViewModel,
     onLoginSuccess: (String) -> Unit,
     onLogout: () -> Unit,
     snackbarHostState: SnackbarHostState
@@ -228,6 +237,12 @@ fun MedTrackNavHost(
                 patientId = patientId,
                 viewModel = symptomsViewModel,
                 snackbarHostState = snackbarHostState
+            )
+        }
+        composable("med_coach") {
+            MedCoach(
+                patientId = patientId,
+                viewModel = medCoachViewModel
             )
         }
         composable("settings") {
@@ -318,13 +333,5 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelLarge,
             color = Color.DarkGray
         )
-    }
-}
-
-@Preview(showBackground = true, name = "Home Screen Preview")
-@Composable
-fun MainPreview() {
-    MedTrackTheme {
-        WelcomeScreen(navController = rememberNavController())
     }
 }

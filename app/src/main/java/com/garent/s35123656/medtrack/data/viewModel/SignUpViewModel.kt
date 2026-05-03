@@ -32,7 +32,7 @@ class SignUpViewModel(private val patientRepo: PatientRepository) : ViewModel() 
                 return@launch
             }
 
-            // Generate new ID
+            // Generate new ID (e.g., P1001, P1002...)
             val lastId = patientRepo.getLastPatientId()
             val nextNum = (lastId?.removePrefix("P")?.toIntOrNull() ?: 1000) + 1
             val newPatientId = "P$nextNum"
@@ -45,12 +45,12 @@ class SignUpViewModel(private val patientRepo: PatientRepository) : ViewModel() 
                 password = password
             )
             patientRepo.insertPatient(newPatient)
-            _signUpResult.emit(SignUpResult.Success)
+            _signUpResult.emit(SignUpResult.Success(newPatientId))
         }
     }
 
     sealed class SignUpResult {
-        object Success : SignUpResult()
+        data class Success(val patientId: String) : SignUpResult()
         data class Error(val message: String) : SignUpResult()
     }
 
