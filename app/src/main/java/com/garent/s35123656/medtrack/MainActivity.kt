@@ -56,6 +56,7 @@ import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 import com.garent.s35123656.medtrack.data.viewModel.LoginViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SymptomsViewModel
+import com.garent.s35123656.medtrack.data.viewModel.SymptomTrendsViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SettingsViewModel
 import com.garent.s35123656.medtrack.data.viewModel.ClaimAccountViewModel
 import com.garent.s35123656.medtrack.data.viewModel.MedCoachViewModel
@@ -107,6 +108,9 @@ class MainActivity : ComponentActivity() {
                 )
                 val symptomsViewModel: SymptomsViewModel = viewModel(
                     factory = SymptomsViewModel.SymptomsViewModelFactory(symptomRepo)
+                )
+                val symptomTrendsViewModel: SymptomTrendsViewModel = viewModel(
+                    factory = SymptomTrendsViewModel.SymptomTrendsViewModelFactory(symptomRepo, medCoachRepo)
                 )
                 val settingsViewModel: SettingsViewModel = viewModel(
                     factory = SettingsViewModel.SettingsViewModelFactory(patientRepo)
@@ -178,6 +182,7 @@ class MainActivity : ComponentActivity() {
                         loginViewModel = loginViewModel,
                         signUpViewModel = signUpViewModel,
                         symptomsViewModel = symptomsViewModel,
+                        symptomTrendsViewModel = symptomTrendsViewModel,
                         settingsViewModel = settingsViewModel,
                         claimAccountViewModel = claimAccountViewModel,
                         medCoachViewModel = medCoachViewModel,
@@ -210,6 +215,7 @@ fun MedTrackNavHost(
     loginViewModel: LoginViewModel,
     signUpViewModel: SignUpViewModel,
     symptomsViewModel: SymptomsViewModel,
+    symptomTrendsViewModel: SymptomTrendsViewModel,
     settingsViewModel: SettingsViewModel,
     claimAccountViewModel: ClaimAccountViewModel,
     medCoachViewModel: MedCoachViewModel,
@@ -261,7 +267,7 @@ fun MedTrackNavHost(
         composable("symptom_trends") {
             SymptomTrendsScreen(
                 patientId = patientId,
-                viewModel = symptomsViewModel,
+                viewModel = symptomTrendsViewModel,
                 onBack = { navController.popBackStack() }
             )
         }

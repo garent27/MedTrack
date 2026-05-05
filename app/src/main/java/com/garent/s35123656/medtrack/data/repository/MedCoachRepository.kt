@@ -73,6 +73,44 @@ class MedCoachRepository(private val medCoachTipDao: MedCoachTipDao) {
         }
     }
 
+    suspend fun askQuestionAboutTrends(
+        question: String,
+        symptomName: String,
+        trends: List<Pair<String, Float>>
+    ): Result<String> {
+        val trendContext = trends.joinToString("\n") { "- Date: ${it.first}, Avg Severity: ${it.second}/10" }
+        
+        val prompt = """
+            The user is asking about their symptom: "$symptomName".
+            User Question: "$question"
+            
+            General Daily Symptom Severity Trends (Last 7 entries):
+            $trendContext
+            
+            Instruction: Answer the user's question specifically focusing on "$symptomName" in the context of their data. 
+            Provide a supportive, informative response. 
+            Do not give specific medical diagnoses or prescriptions. 
+            If the data doesn't mention "$symptomName" specifically, mention that you're looking at their general trends.
+            Keep the response concise (under 120 words).
+        """.trimIndent()
+
+        val request = GeminiRequest(
+            contents = listOf(Content(parts = listOf(Part(text = prompt))))
+        )
+
+        return try {
+            val response = geminiService.generateContent(apiKey, request)
+            val answer = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+            if (answer != null) {
+                Result.success(answer)
+            } else {
+                Result.failure(Exception("No answer generated"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun findPatterns(
         totalPatients: Int,
         avgMeds: Double,
