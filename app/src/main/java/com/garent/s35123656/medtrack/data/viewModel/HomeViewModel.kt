@@ -73,6 +73,15 @@ class HomeViewModel(
     }
 
     /**
+     * Resets the 'isTaken' status for all medications of a specific patient.
+     */
+    fun resetMedicationsStatus(patientId: String) {
+        viewModelScope.launch {
+            medicationRepo.resetAllMedicationsStatus(patientId)
+        }
+    }
+
+    /**
      * Adds a new medication to the database asynchronously.
      * Executes the onComplete callback upon success.
      */

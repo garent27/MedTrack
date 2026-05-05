@@ -20,4 +20,7 @@ interface MedicationDao {
 
     @Query("UPDATE medications SET isTaken = :isTaken WHERE id = :medId")
     suspend fun updateMedicationStatus(medId: Int, isTaken: Boolean)
+
+    @Query("UPDATE medications SET isTaken = 0 WHERE patientId = :patientId")
+    suspend fun resetAllMedicationsStatus(patientId: String)
 }

@@ -41,6 +41,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
@@ -59,22 +60,33 @@ import androidx.compose.material.icons.filled.HealthAndSafety
  */
 @Composable
 fun Home(patientId: String, viewModel: HomeViewModel, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
 
     // Observe data reactively from the ViewModel
     val medicationList by viewModel.getMedications(patientId).collectAsState(initial = emptyList())
     val patientName = viewModel.patientName
 
-    // Load the patient's name when the screen opens or patientId changes
+    // Load the patient's name and check for daily reset
     LaunchedEffect(patientId) {
         if (patientId.isNotEmpty()) {
             viewModel.loadPatientName(patientId)
+            
+            // Daily Reset Logic
+            val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val lastResetDate = sharedPref.getString("last_reset_date_$patientId", "")
+            val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().time)
+            
+            if (lastResetDate != currentDate) {
+                viewModel.resetMedicationsStatus(patientId)
+                sharedPref.edit().putString("last_reset_date_$patientId", currentDate).apply()
+            }
         }
     }
 
     // Calculations for UI
     val calendar = Calendar.getInstance().time
     val dateFormat = SimpleDateFormat("EEEE, d MMMM yyyy", Locale.getDefault())
-    val currentDate = dateFormat.format(calendar)
+    val currentDateText = dateFormat.format(calendar)
 
     val totalMeds = medicationList.size
     val takenMeds = medicationList.count { it.isTaken }
@@ -111,7 +123,7 @@ fun Home(patientId: String, viewModel: HomeViewModel, modifier: Modifier = Modif
 
         // Current date display
         Text(
-            text = currentDate,
+            text = currentDateText,
             fontSize = 18.sp,
             color = MaterialTheme.colorScheme.secondary,
             style = MaterialTheme.typography.bodyLarge

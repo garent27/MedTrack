@@ -8,4 +8,5 @@ class MedicationRepository(private val medicationDao: MedicationDao) {
     suspend fun insertMedication(medication: Medication) = medicationDao.insertMedication(medication)
     fun getMedicationsForPatient(patientId: String): Flow<List<Medication>> = medicationDao.getMedicationsForPatient(patientId)
     suspend fun updateMedicationStatus(medId: Int, isTaken: Boolean) = medicationDao.updateMedicationStatus(medId, isTaken)
+    suspend fun resetAllMedicationsStatus(patientId: String) = medicationDao.resetAllMedicationsStatus(patientId)
 }
