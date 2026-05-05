@@ -120,7 +120,8 @@ class MainActivity : ComponentActivity() {
                         medicationRepo,
                         medCoachRepo,
                         symptomRepo,
-                        patientRepo)
+                        patientRepo
+                    )
                 )
                 val clinicianViewModel: ClinicianViewModel = viewModel(
                     factory = ClinicianViewModel.ClinicianViewModelFactory(patientRepo, medicationRepo, symptomRepo, medCoachRepo)
@@ -253,7 +254,15 @@ fun MedTrackNavHost(
             Symptoms(
                 patientId = patientId,
                 viewModel = symptomsViewModel,
-                snackbarHostState = snackbarHostState
+                snackbarHostState = snackbarHostState,
+                navController = navController
+            )
+        }
+        composable("symptom_trends") {
+            SymptomTrendsScreen(
+                patientId = patientId,
+                viewModel = symptomsViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
         composable("med_coach") {

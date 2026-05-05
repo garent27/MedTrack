@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,30 +18,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.garent.s35123656.medtrack.data.entity.Symptom
 import com.garent.s35123656.medtrack.data.viewModel.SymptomsViewModel
-import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
 /**
  * Symptoms screen allowing users to log new symptoms and view history.
- * Follows MVVM: Delegates data loading and saving to SymptomsViewModel.
- * UI state is managed by the ViewModel to survive configuration changes (e.g., rotation).
+ * Original Feature Extension: Provides navigation to a dedicated Trend Chart screen.
  */
 @Composable
 fun Symptoms(
     patientId: String,
     viewModel: SymptomsViewModel,
     snackbarHostState: SnackbarHostState,
+    navController: NavController,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // UI state for the logging form - Now managed by ViewModel
+    // UI state for the logging form
     val categories = listOf("Pain", "Nausea", "Dizziness", "Fatigue", "Headache", "Skin Reaction", "Other")
     
     val selectedCategory = viewModel.selectedCategory
@@ -160,7 +161,7 @@ fun Symptoms(
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                 ) {
-                    Text(text = if (dateTime == "Select Date & Time") "Select Date & Time" else "SCHEDULE: $dateTime")
+                    Text(text = if (dateTime == "Select Date & Time") "Select Date & Time" else "TIME: $dateTime")
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -179,7 +180,6 @@ fun Symptoms(
                                 notes = notes,
                                 dateTime = dateTime
                             )
-                            // Use ViewModel to save data
                             viewModel.addSymptom(newSymptom) {
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Success: symptom saved ^-^")
@@ -190,6 +190,21 @@ fun Symptoms(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Save")
+                }
+            }
+
+            // --- Original Feature Extension: Navigation Button ---
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { navController.navigate("symptom_trends") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("View Severity Trends")
                 }
             }
 
@@ -213,6 +228,10 @@ fun Symptoms(
                 items(symptomList) { symptom ->
                     SymptomCard(symptom)
                 }
+            }
+            
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
