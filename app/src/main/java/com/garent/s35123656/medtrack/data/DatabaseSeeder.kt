@@ -17,6 +17,7 @@ suspend fun seedDatabaseOnFirstLaunch(context: Context, database: MedTrackDataba
     val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     val isSeeded = prefs.getBoolean("is_db_seeded", false)
 
+
     if (isSeeded) return
 
     withContext(Dispatchers.IO) {
@@ -25,6 +26,11 @@ suspend fun seedDatabaseOnFirstLaunch(context: Context, database: MedTrackDataba
 
             // 1. MIGRATE PATIENTS
             val patientsToInsert = mutableListOf<Patient>()
+
+            // set regex for more proper csv parsing for notes
+            val csvRegex = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)".toRegex()
+
+            // A. From CSV
             context.assets.open("patients.csv").bufferedReader().useLines { lines ->
                 lines.drop(1).forEach { line ->
                     val tokens = line.split(",")
@@ -37,7 +43,8 @@ suspend fun seedDatabaseOnFirstLaunch(context: Context, database: MedTrackDataba
                     }
                 }
             }
-            // Also migrate legacy SharedPreferences users if any (optional based on your A1 implementation)
+
+            // B. From SharedPreferences (Legacy App Data)
             val usersPref = context.getSharedPreferences("users", Context.MODE_PRIVATE)
             usersPref.all.values.forEach { json ->
                 try {
@@ -54,21 +61,29 @@ suspend fun seedDatabaseOnFirstLaunch(context: Context, database: MedTrackDataba
 
             // 2. MIGRATE MEDICATIONS
             val medsToInsert = mutableListOf<Medication>()
+
+            // A. From CSV
             context.assets.open("medications.csv").bufferedReader().useLines { lines ->
                 lines.drop(1).forEach { line ->
-                    val tokens = line.split(",")
+                    val tokens = line.split(csvRegex).map { it.trim().removeSurrounding("\"") }
                     if (tokens.size >= 5) {
                         medsToInsert.add(
                             Medication(
-                                patientId = tokens[0].trim(), medicationName = tokens[1].trim(),
-                                dosage = tokens[2].trim(), frequency = tokens[3].trim(),
-                                scheduledTime = tokens[4].trim(), medicationType = tokens.getOrNull(5)?.trim() ?: "",
-                                notes = tokens.getOrNull(6)?.trim() ?: ""
+                                patientId = tokens[0],
+                                medicationName = tokens[1],
+                                dosage = tokens[2],
+                                frequency = tokens[3],
+                                scheduledTime = tokens[4],
+                                medicationType = tokens.getOrNull(5) ?: "",
+                                notes = tokens.getOrNull(6) ?: "",
+                                isTaken = false
                             )
                         )
                     }
                 }
             }
+
+            // B. From SharedPreferences (Legacy App Data)
             val medsPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
             medsPref.all.values.forEach { json ->
                 try {
@@ -77,32 +92,43 @@ suspend fun seedDatabaseOnFirstLaunch(context: Context, database: MedTrackDataba
                     medsList.forEach { medMap ->
                         medsToInsert.add(
                             Medication(
-                                patientId = medMap["medPetientID"].toString(), medicationName = medMap["medicationName"].toString(),
-                                dosage = medMap["dosage"].toString(), frequency = medMap["frequency"].toString(),
-                                scheduledTime = medMap["scheduledTime"].toString(), medicationType = medMap["medicationType"].toString(),
-                                notes = medMap["notes"].toString(), isTaken = medMap["isTaken"] as? Boolean ?: false
+                                patientId = medMap["medPetientID"].toString(),
+                                medicationName = medMap["medicationName"].toString(),
+                                dosage = medMap["dosage"].toString(),
+                                frequency = medMap["frequency"].toString(),
+                                scheduledTime = medMap["scheduledTime"].toString(),
+                                medicationType = medMap["medicationType"].toString(),
+                                notes = medMap["notes"].toString(),
+                                isTaken = medMap["isTaken"] as? Boolean ?: false
                             )
                         )
                     }
                 } catch (e: Exception) { Log.e("Seed", "Med Parse Error") }
             }
+
             database.medicationDao().insertMedications(medsToInsert)
 
             // 3. MIGRATE SYMPTOMS
             val symptomsToInsert = mutableListOf<Symptom>()
+
+            // From CSV
             context.assets.open("symptoms.csv").bufferedReader().useLines { lines ->
                 lines.drop(1).forEach { line ->
-                    val tokens = line.split(",")
+                    val tokens = line.split(csvRegex).map { it.trim().removeSurrounding("\"") }
                     if (tokens.size >= 5) {
                         symptomsToInsert.add(
                             Symptom(
-                                patientId = tokens[0].trim(), category = tokens[1].trim(),
-                                severity = tokens[2].trim(), notes = tokens[3].trim(), dateTime = tokens[4].trim()
+                                patientId = tokens[0],
+                                category = tokens[1],
+                                severity = tokens[2],
+                                notes = tokens[3],
+                                dateTime = tokens[4]
                             )
                         )
                     }
                 }
             }
+            // Insert all symptoms into Room
             database.symptomDao().insertSymptoms(symptomsToInsert)
 
             // 4. Mark as seeded
