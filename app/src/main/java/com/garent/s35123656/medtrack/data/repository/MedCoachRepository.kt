@@ -11,6 +11,7 @@ import com.garent.s35123656.medtrack.data.remote.Part
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import kotlinx.coroutines.flow.Flow
+import java.util.Locale
 
 class MedCoachRepository(private val medCoachTipDao: MedCoachTipDao) {
     private val geminiRetrofit = Retrofit.Builder()
@@ -27,7 +28,6 @@ class MedCoachRepository(private val medCoachTipDao: MedCoachTipDao) {
         medications: List<Medication>,
         symptoms: List<Symptom>
     ): Result<String> {
-
 
         val medContext = if (medications.isNotEmpty()) {
             "Patient is currently taking: ${medications.joinToString { "${it.medicationName} (${it.frequency})" }}."
@@ -67,6 +67,51 @@ class MedCoachRepository(private val medCoachTipDao: MedCoachTipDao) {
                 Result.success(tipText)
             } else {
                 Result.failure(Exception("No tip generated"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun findPatterns(
+        totalPatients: Int,
+        avgMeds: Double,
+        commonSymptom: String,
+        avgSeverity: Double
+    ): Result<List<String>> {
+        val prompt = """
+            Analyze the following aggregated patient data from a medical tracking app and provide exactly 3 interesting patterns or observations.
+            - Total patients: $totalPatients
+            - Average medications per patient: ${String.format(Locale.getDefault(), "%.1f", avgMeds)}
+            - Most common symptom category: $commonSymptom
+            - Average symptom severity: ${String.format(Locale.getDefault(), "%.1f", avgSeverity)}/10
+
+            Provide exactly 3 insights as a numbered list. Each insight should be a single clear sentence.
+        """.trimIndent()
+
+        val request = GeminiRequest(
+            contents = listOf(Content(parts = listOf(Part(text = prompt))))
+        )
+
+        return try {
+            val response = geminiService.generateContent(apiKey, request)
+            val text = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+            if (text != null) {
+                val patterns = text.lines()
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() && (it.first().isDigit() || it.startsWith("*") || it.startsWith("-")) }
+                    .map { it.replace(Regex("^[^a-zA-Z]+"), "").trim() }
+                    .take(3)
+                
+                if (patterns.size >= 3) {
+                    Result.success(patterns)
+                } else {
+                    val rawPatterns = text.split("\n").filter { it.isNotBlank() }.map { it.replace(Regex("^[^a-zA-Z]+"), "").trim() }.take(3)
+                    if (rawPatterns.size >= 3) Result.success(rawPatterns)
+                    else Result.failure(Exception("Could not parse patterns"))
+                }
+            } else {
+                Result.failure(Exception("No patterns generated"))
             }
         } catch (e: Exception) {
             Result.failure(e)

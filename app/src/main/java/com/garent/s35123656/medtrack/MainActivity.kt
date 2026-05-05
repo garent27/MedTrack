@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
                         patientRepo)
                 )
                 val clinicianViewModel: ClinicianViewModel = viewModel(
-                    factory = ClinicianViewModel.ClinicianViewModelFactory(patientRepo, medicationRepo, symptomRepo)
+                    factory = ClinicianViewModel.ClinicianViewModelFactory(patientRepo, medicationRepo, symptomRepo, medCoachRepo)
                 )
                 val clinicianLoginViewModel: ClinicianLoginViewModel = viewModel()
 
