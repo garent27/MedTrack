@@ -204,7 +204,7 @@ fun Symptoms(
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ShowChart, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Severity Trends")
+                    Text("View Symptom Trends")
                 }
             }
 
