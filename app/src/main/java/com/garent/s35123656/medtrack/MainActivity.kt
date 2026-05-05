@@ -113,7 +113,12 @@ class MainActivity : ComponentActivity() {
                     factory = ClaimAccountViewModel.ClaimAccountViewModelFactory(patientRepo)
                 )
                 val medCoachViewModel: MedCoachViewModel = viewModel(
-                    factory = MedCoachViewModel.MedCoachViewModelFactory(drugRepo, medicationRepo, medCoachRepo)
+                    factory = MedCoachViewModel.MedCoachViewModelFactory(
+                        drugRepo,
+                        medicationRepo,
+                        medCoachRepo,
+                        symptomRepo,
+                        patientRepo)
                 )
 
                 // Run the database seeder on first launch

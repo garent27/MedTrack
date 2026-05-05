@@ -11,13 +11,17 @@ import com.garent.s35123656.medtrack.data.remote.DrugInfo
 import com.garent.s35123656.medtrack.data.repository.DrugRepository
 import com.garent.s35123656.medtrack.data.repository.MedCoachRepository
 import com.garent.s35123656.medtrack.data.repository.MedicationRepository
+import com.garent.s35123656.medtrack.data.repository.PatientRepository
+import com.garent.s35123656.medtrack.data.repository.SymptomRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MedCoachViewModel(
     private val drugRepository: DrugRepository,
     private val medicationRepository: MedicationRepository,
-    private val medCoachRepository: MedCoachRepository
+    private val medCoachRepository: MedCoachRepository,
+    private val symptomRepository: SymptomRepository,
+    private val patientRepository: PatientRepository
 ) : ViewModel() {
 
     // --- Drug Search State ---
@@ -85,7 +89,12 @@ class MedCoachViewModel(
             isLoadingTip = true
             tipErrorMessage = null
             
-            val result = medCoachRepository.generateTip(patientId)
+            // Fetch patient data for context
+            val name = patientRepository.getPatientNameById(patientId) ?: "User"
+            val meds = medicationRepository.getMedicationsForPatient(patientId).first()
+            val symptoms = symptomRepository.getSymptomsForPatient(patientId).first()
+            
+            val result = medCoachRepository.generateTip(patientId, name,  meds, symptoms)
             result.onSuccess { tip ->
                 currentTip = tip
                 isLoadingTip = false
@@ -108,12 +117,14 @@ class MedCoachViewModel(
     class MedCoachViewModelFactory(
         private val drugRepository: DrugRepository,
         private val medicationRepository: MedicationRepository,
-        private val medCoachRepository: MedCoachRepository
+        private val medCoachRepository: MedCoachRepository,
+        private val symptomRepository: SymptomRepository,
+        private val patientRepository: PatientRepository
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MedCoachViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return MedCoachViewModel(drugRepository, medicationRepository, medCoachRepository) as T
+                return MedCoachViewModel(drugRepository, medicationRepository, medCoachRepository, symptomRepository, patientRepository) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
