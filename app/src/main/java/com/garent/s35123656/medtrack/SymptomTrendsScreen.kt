@@ -35,7 +35,6 @@ fun SymptomTrendsScreen(
     onBack: () -> Unit
 ) {
     val trendData by viewModel.getSymptomTrends(patientId).collectAsState(initial = emptyList())
-    val symptomName = viewModel.symptomToAnalyze
     val trendQuestion = viewModel.trendQuestion
     val trendAnswer = viewModel.trendAnswer
     val isAnalyzing = viewModel.isAnalyzingTrends
@@ -106,18 +105,6 @@ fun SymptomTrendsScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Input for specific symptom
-            OutlinedTextField(
-                value = symptomName,
-                onValueChange = { viewModel.symptomToAnalyze = it },
-                label = { Text("Symptom to analyze (e.g. 'Nausea')") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = MaterialTheme.shapes.medium,
-                placeholder = { Text("Which symptom are you concerned about?") }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             // Input for user question
             OutlinedTextField(
@@ -135,7 +122,7 @@ fun SymptomTrendsScreen(
             Button(
                 onClick = { viewModel.askAiAboutTrends(patientId) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isAnalyzing && trendQuestion.isNotBlank() && symptomName.isNotBlank(),
+                enabled = !isAnalyzing && trendQuestion.isNotBlank(),
                 shape = MaterialTheme.shapes.medium
             ) {
                 if (isAnalyzing) {

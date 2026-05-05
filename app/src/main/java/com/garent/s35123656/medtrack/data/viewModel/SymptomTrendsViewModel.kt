@@ -23,7 +23,6 @@ class SymptomTrendsViewModel(
 ) : ViewModel() {
 
     // --- GenAI Trend Question State ---
-    var symptomToAnalyze by mutableStateOf("")
     var trendQuestion by mutableStateOf("")
     var trendAnswer by mutableStateOf<String?>(null)
     var isAnalyzingTrends by mutableStateOf(false)
@@ -46,23 +45,31 @@ class SymptomTrendsViewModel(
     }
 
     /**
-     * Sends the trend data, symptom name, and user question to the GenAI model.
+     * Sends the trend data, full symptom history context, and user question to the GenAI model.
      */
     fun askAiAboutTrends(patientId: String) {
-        if (symptomToAnalyze.isBlank() || trendQuestion.isBlank()) return
+        if (trendQuestion.isBlank()) return
 
         viewModelScope.launch {
             isAnalyzingTrends = true
             trendErrorMessage = null
             
-            val trends = getSymptomTrends(patientId).first()
-            val result = medCoachRepo.askQuestionAboutTrends(trendQuestion, symptomToAnalyze, trends)
-            
-            result.onSuccess { answer ->
-                trendAnswer = answer
-                isAnalyzingTrends = false
-            }.onFailure { error ->
-                trendErrorMessage = "AI Analysis failed: ${error.message}"
+            try {
+                // Fetch current trends and all symptoms for full context
+                val trends = getSymptomTrends(patientId).first()
+                val allSymptoms = symptomRepo.getSymptomsForPatient(patientId).first()
+                
+                val result = medCoachRepo.askQuestionAboutTrends(trendQuestion, allSymptoms, trends)
+                
+                result.onSuccess { answer ->
+                    trendAnswer = answer
+                    isAnalyzingTrends = false
+                }.onFailure { error ->
+                    trendErrorMessage = "AI Analysis failed: ${error.message}"
+                    isAnalyzingTrends = false
+                }
+            } catch (e: Exception) {
+                trendErrorMessage = "Error gathering data: ${e.message}"
                 isAnalyzingTrends = false
             }
         }

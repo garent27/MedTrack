@@ -75,22 +75,27 @@ class MedCoachRepository(private val medCoachTipDao: MedCoachTipDao) {
 
     suspend fun askQuestionAboutTrends(
         question: String,
-        symptomName: String,
+        symptoms: List<Symptom>,
         trends: List<Pair<String, Float>>
     ): Result<String> {
         val trendContext = trends.joinToString("\n") { "- Date: ${it.first}, Avg Severity: ${it.second}/10" }
+        val symptomsContext = if (symptoms.isNotEmpty()) {
+            "User's recently logged symptoms:\n" + symptoms.take(10).joinToString("\n") { "- ${it.category} (Severity: ${it.severity}/10) on ${it.dateTime}" }
+        } else {
+            "User has no specific symptom logs yet."
+        }
         
         val prompt = """
-            The user is asking about their symptom: "$symptomName".
             User Question: "$question"
             
-            General Daily Symptom Severity Trends (Last 7 entries):
+            $symptomsContext
+            
+            Daily Average Severity Trends (Last 7 entries):
             $trendContext
             
-            Instruction: Answer the user's question specifically focusing on "$symptomName" in the context of their data. 
+            Instruction: Answer the user's question based on their provided symptom logs and severity trends.
             Provide a supportive, informative response. 
             Do not give specific medical diagnoses or prescriptions. 
-            If the data doesn't mention "$symptomName" specifically, mention that you're looking at their general trends.
             Keep the response concise (under 120 words).
         """.trimIndent()
 
