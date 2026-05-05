@@ -59,6 +59,8 @@ import com.garent.s35123656.medtrack.data.viewModel.SymptomsViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SettingsViewModel
 import com.garent.s35123656.medtrack.data.viewModel.ClaimAccountViewModel
 import com.garent.s35123656.medtrack.data.viewModel.MedCoachViewModel
+import com.garent.s35123656.medtrack.data.viewModel.ClinicianViewModel
+import com.garent.s35123656.medtrack.data.viewModel.ClinicianLoginViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
 
 /**
@@ -120,6 +122,10 @@ class MainActivity : ComponentActivity() {
                         symptomRepo,
                         patientRepo)
                 )
+                val clinicianViewModel: ClinicianViewModel = viewModel(
+                    factory = ClinicianViewModel.ClinicianViewModelFactory(patientRepo, medicationRepo, symptomRepo)
+                )
+                val clinicianLoginViewModel: ClinicianLoginViewModel = viewModel()
 
                 // Run the database seeder on first launch
                 LaunchedEffect(Unit) {
@@ -174,6 +180,8 @@ class MainActivity : ComponentActivity() {
                         settingsViewModel = settingsViewModel,
                         claimAccountViewModel = claimAccountViewModel,
                         medCoachViewModel = medCoachViewModel,
+                        clinicianViewModel = clinicianViewModel,
+                        clinicianLoginViewModel = clinicianLoginViewModel,
                         onLoginSuccess = { newId ->
                             loggedInId = newId
                             navController.navigate("home") {
@@ -204,6 +212,8 @@ fun MedTrackNavHost(
     settingsViewModel: SettingsViewModel,
     claimAccountViewModel: ClaimAccountViewModel,
     medCoachViewModel: MedCoachViewModel,
+    clinicianViewModel: ClinicianViewModel,
+    clinicianLoginViewModel: ClinicianLoginViewModel,
     onLoginSuccess: (String) -> Unit,
     onLogout: () -> Unit,
     snackbarHostState: SnackbarHostState
@@ -257,7 +267,7 @@ fun MedTrackNavHost(
                 patientId = patientId,
                 viewModel = settingsViewModel,
                 onLogout = onLogout,
-                onClinicianLogin = { /* TODO: Navigate to Clinician Login */ }
+                onClinicianLogin = { navController.navigate("clinician_login") }
             )
         }
         composable("add_medication") {
@@ -266,6 +276,18 @@ fun MedTrackNavHost(
                 navController = navController,
                 snackbarHostState = snackbarHostState,
                 viewModel = homeViewModel
+            )
+        }
+        composable("clinician_login") {
+            ClinicianLogin(
+                navController = navController,
+                viewModel = clinicianLoginViewModel
+            )
+        }
+        composable("clinician_dashboard") {
+            ClinicianDashboard(
+                viewModel = clinicianViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
     }

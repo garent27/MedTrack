@@ -23,4 +23,7 @@ interface MedicationDao {
 
     @Query("UPDATE medications SET isTaken = 0 WHERE patientId = :patientId")
     suspend fun resetAllMedicationsStatus(patientId: String)
+
+    @Query("SELECT COUNT(*) FROM medications")
+    suspend fun getTotalMedicationsCount(): Int
 }

@@ -32,4 +32,7 @@ interface PatientDao {
 
     @Query("SELECT * FROM patients WHERE patientId = :id AND phoneNumber = :phone")
     suspend fun getPatientByIdAndPhone(id: String, phone: String): Patient?
+
+    @Query("SELECT COUNT(*) FROM patients")
+    suspend fun getTotalPatients(): Int
 }

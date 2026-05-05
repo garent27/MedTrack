@@ -17,4 +17,10 @@ interface SymptomDao {
 
     @Query("SELECT * FROM symptoms WHERE patientId = :patientId ORDER BY dateTime DESC")
     fun getSymptomsForPatient(patientId: String): Flow<List<Symptom>>
+
+    @Query("SELECT category FROM symptoms GROUP BY category ORDER BY COUNT(*) DESC LIMIT 1")
+    suspend fun getMostCommonCategory(): String?
+
+    @Query("SELECT AVG(CAST(severity AS FLOAT)) FROM symptoms")
+    suspend fun getAverageSeverity(): Double?
 }
