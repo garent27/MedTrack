@@ -5,61 +5,31 @@ import android.app.TimePickerDialog
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.garent.s35123656.medtrack.data.entity.Medication
-import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
+import com.garent.s35123656.medtrack.data.viewModel.AddMedicationViewModel
 import com.garent.s35123656.medtrack.ui.theme.MedTrackTheme
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.util.Calendar
 
-/**
- * Screen for adding a new medication.
- * Follows MVVM: Delegates data persistence to HomeViewModel.
- * UI state is managed by the ViewModel to survive configuration changes (e.g., rotation).
- */
 @Composable
 fun AddMedication(
     patientId: String,
     navController: NavController,
-    viewModel: HomeViewModel,
+    viewModel: AddMedicationViewModel, // <-- USING THE NEW VIEWMODEL
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // UI state for form fields - Now managed by ViewModel
+    // UI state for form fields
     val medName = viewModel.medName
     val dosage = viewModel.dosage
     val scheduledTime = viewModel.scheduledTime
@@ -71,11 +41,17 @@ fun AddMedication(
     val frequencies = listOf("Once daily", "Twice daily", "Three times daily", "As needed")
     val medTypes = listOf("Tablet", "Capsule", "Liquid", "Injection", "Topical", "Other")
 
-    // Validation
-    val dosageRegex = Regex("""^\d+(\.\d+)?(mg|ml|g)$""")
-    val isNameValid = medName.isNotBlank()
-    val isDosageValid = dosageRegex.matches(dosage.trim())
-    val isTimeValid = scheduledTime.isNotBlank()
+    // --- NEW MVVM EVENT LISTENER ---
+    LaunchedEffect(Unit) {
+        viewModel.addMedResult.collect { success ->
+            if (success) {
+                Toast.makeText(context, "Success: Medication Added", Toast.LENGTH_SHORT).show()
+                navController.popBackStack()
+            } else {
+                snackbarHostState.showSnackbar("Please fix errors above")
+            }
+        }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -98,24 +74,25 @@ fun AddMedication(
                 onValueChange = { viewModel.medName = it },
                 label = { Text("Medication Name *") },
                 modifier = Modifier.fillMaxWidth(),
-                isError = showErrors && !isNameValid,
+                isError = showErrors && medName.isBlank(),
                 supportingText =  {
-                    if (showErrors && !isNameValid) {
+                    if (showErrors && medName.isBlank()) {
                         Text("Medication name is required")
                     }
                 }
             )
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Note: The UI just checks for blanks now, the deep regex validation lives in the ViewModel!
             OutlinedTextField(
                 value = dosage,
                 onValueChange = { viewModel.dosage = it },
                 label = { Text("Dosage (e.g. 250mg) *") },
                 modifier = Modifier.fillMaxWidth(),
-                isError = showErrors && !isDosageValid,
+                isError = showErrors && dosage.isBlank(),
                 supportingText = {
-                    if (showErrors && !isDosageValid) {
-                        val errorMessage = if (dosage.isBlank()) "Dosage is required" else "Format error: Use number + unit"
-                        Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
+                    if (showErrors && dosage.isBlank()) {
+                        Text(text = "Dosage is required", color = MaterialTheme.colorScheme.error)
                     }
                 }
             )
@@ -154,7 +131,7 @@ fun AddMedication(
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                border = if (showErrors && !isTimeValid) BorderStroke(1.dp, MaterialTheme.colorScheme.error) else ButtonDefaults.outlinedButtonBorder(enabled = true)
+                border = if (showErrors && scheduledTime.isBlank()) BorderStroke(1.dp, MaterialTheme.colorScheme.error) else ButtonDefaults.outlinedButtonBorder(enabled = true)
             ) {
                 Text(text = if (scheduledTime.isEmpty()) "Select Time" else "SCHEDULE: $scheduledTime")
             }
@@ -193,38 +170,17 @@ fun AddMedication(
 
         item {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                // --- PURE MVVM BUTTON ---
                 Button(
-                    onClick = {
-                        if (isNameValid && isDosageValid && isTimeValid) {
-                            val newMedication = Medication(
-                                patientId = patientId,
-                                medicationName = medName,
-                                dosage = dosage,
-                                frequency = selectedFreq,
-                                scheduledTime = scheduledTime,
-                                medicationType = selectedType,
-                                notes = notes,
-                                isTaken = false
-                            )
-                            // Use ViewModel to add medication
-                            viewModel.addMedication(newMedication) {
-                                scope.launch {
-                                    Toast.makeText(context, "Success: Medication Added", Toast.LENGTH_SHORT).show()
-                                    navController.popBackStack()
-                                }
-                            }
-                        } else {
-                            viewModel.showErrors = true
-                            scope.launch { snackbarHostState.showSnackbar("Please fix errors above") }
-                        }
-                    },
+                    onClick = { viewModel.saveMedication(patientId) },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Save")
                 }
 
                 OutlinedButton(
-                    onClick = { viewModel.clearAddMedicationForm() },
+                    onClick = { viewModel.clearForm() },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Clear")

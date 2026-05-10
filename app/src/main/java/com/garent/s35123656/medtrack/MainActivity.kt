@@ -52,6 +52,7 @@ import com.garent.s35123656.medtrack.data.repository.MedicationRepository
 import com.garent.s35123656.medtrack.data.repository.PatientRepository
 import com.garent.s35123656.medtrack.data.repository.SymptomRepository
 import com.garent.s35123656.medtrack.data.repository.MedCoachRepository
+import com.garent.s35123656.medtrack.data.viewModel.AddMedicationViewModel
 import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 import com.garent.s35123656.medtrack.data.viewModel.LoginViewModel
 import com.garent.s35123656.medtrack.data.viewModel.SignUpViewModel
@@ -132,6 +133,10 @@ class MainActivity : ComponentActivity() {
                 )
                 val clinicianLoginViewModel: ClinicianLoginViewModel = viewModel()
 
+                val addMedicationViewModel: AddMedicationViewModel = viewModel(
+                    factory = AddMedicationViewModel.AddMedicationViewModelFactory(medicationRepo)
+                )
+
                 // Run the database seeder on first launch
                 LaunchedEffect(Unit) {
                     com.garent.s35123656.medtrack.data.seedDatabaseOnFirstLaunch(context, db)
@@ -179,6 +184,7 @@ class MainActivity : ComponentActivity() {
                         innerPadding = innerPadding,
                         patientId = loggedInId ?: "",
                         homeViewModel = homeViewModel,
+                        addMedicationViewModel = addMedicationViewModel,
                         loginViewModel = loginViewModel,
                         signUpViewModel = signUpViewModel,
                         symptomsViewModel = symptomsViewModel,
@@ -212,6 +218,7 @@ fun MedTrackNavHost(
     innerPadding: PaddingValues,
     patientId: String,
     homeViewModel: HomeViewModel,
+    addMedicationViewModel: AddMedicationViewModel,
     loginViewModel: LoginViewModel,
     signUpViewModel: SignUpViewModel,
     symptomsViewModel: SymptomsViewModel,
@@ -256,6 +263,14 @@ fun MedTrackNavHost(
         composable("home") {
             Home(patientId = patientId, viewModel = homeViewModel)
         }
+        composable("add_medication") {
+            AddMedication(
+                patientId = patientId,
+                navController = navController,
+                snackbarHostState = snackbarHostState,
+                viewModel = addMedicationViewModel
+            )
+        }
         composable("symptoms") {
             Symptoms(
                 patientId = patientId,
@@ -285,14 +300,7 @@ fun MedTrackNavHost(
                 onClinicianLogin = { navController.navigate("clinician_login") }
             )
         }
-        composable("add_medication") {
-            AddMedication(
-                patientId = patientId,
-                navController = navController,
-                snackbarHostState = snackbarHostState,
-                viewModel = homeViewModel
-            )
-        }
+
         composable("clinician_login") {
             ClinicianLogin(
                 navController = navController,

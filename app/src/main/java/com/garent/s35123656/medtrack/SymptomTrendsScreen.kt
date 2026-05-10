@@ -74,7 +74,7 @@ fun SymptomTrendsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "This chart shows the average severity of your logged symptoms over the last 7 entries.",
+                text = "This chart shows the daily average severity of your symptoms across your last 7 active days.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(bottom = 24.dp)

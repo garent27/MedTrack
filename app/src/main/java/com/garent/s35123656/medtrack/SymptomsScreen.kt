@@ -52,6 +52,20 @@ fun Symptoms(
     // Observe symptoms history from ViewModel
     val symptomList by viewModel.getSymptoms(patientId).collectAsState(initial = emptyList())
 
+    // Observe symptom save results from ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.addSymptomResult.collect { result ->
+            when (result) {
+                is SymptomsViewModel.SymptomResult.Success -> {
+                    snackbarHostState.showSnackbar("Success: symptom saved ^-^")
+                }
+                is SymptomsViewModel.SymptomResult.Error -> {
+                    snackbarHostState.showSnackbar(result.message)
+                }
+            }
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
@@ -167,26 +181,7 @@ fun Symptoms(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
-                    onClick = {
-                        if (selectedCategory == "Select Category") {
-                            scope.launch { snackbarHostState.showSnackbar("Please select a category!") }
-                        } else if (dateTime == "Select Date & Time") {
-                            scope.launch { snackbarHostState.showSnackbar("When did this symptom occur?") }
-                        } else {
-                            val newSymptom = Symptom(
-                                patientId = patientId,
-                                category = selectedCategory,
-                                severity = severity.toInt().toString(),
-                                notes = notes,
-                                dateTime = dateTime
-                            )
-                            viewModel.addSymptom(newSymptom) {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Success: symptom saved ^-^")
-                                }
-                            }
-                        }
-                    },
+                    onClick = { viewModel.saveSymptom(patientId) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Save")

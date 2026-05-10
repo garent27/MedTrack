@@ -1,5 +1,6 @@
 package com.garent.s35123656.medtrack.data.viewModel
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +12,9 @@ import com.garent.s35123656.medtrack.data.repository.MedicationRepository
 import com.garent.s35123656.medtrack.data.repository.PatientRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 /**
  * ViewModel for the Home and Add Medication screens.
@@ -33,6 +37,24 @@ class HomeViewModel(
     var selectedFreq by mutableStateOf("Once daily")
     var selectedType by mutableStateOf("Tablet")
     var showErrors by mutableStateOf(false)
+
+    /**
+     * Check and reset medication if new day
+     */
+    fun onHomeScreenStarted(patientId: String, context: Context) {
+        loadPatientName(patientId)
+
+        viewModelScope.launch {
+            val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val lastResetDate = sharedPref.getString("last_reset_date_$patientId", "")
+            val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().time)
+
+            if (lastResetDate != currentDate) {
+                resetMedicationsStatus(patientId)
+                sharedPref.edit().putString("last_reset_date_$patientId", currentDate).apply()
+            }
+        }
+    }
 
     /**
      * Resets the add medication form fields to their default values.
@@ -81,17 +103,6 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Adds a new medication to the database asynchronously.
-     * Executes the onComplete callback upon success.
-     */
-    fun addMedication(medication: Medication, onComplete: () -> Unit) {
-        viewModelScope.launch {
-            medicationRepo.insertMedication(medication)
-            clearAddMedicationForm()
-            onComplete()
-        }
-    }
 
     /**
      * Factory for creating HomeViewModel instances with required repository dependencies.

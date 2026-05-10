@@ -64,11 +64,7 @@ fun ClinicianLogin(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {
-                scope.launch {
-                    viewModel.login()
-                }
-            },
+            onClick = { viewModel.login() },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Login")

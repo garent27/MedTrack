@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import com.garent.s35123656.medtrack.data.entity.Symptom
 import com.garent.s35123656.medtrack.data.repository.SymptomRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -26,6 +28,15 @@ class SymptomsViewModel(
     var notes by mutableStateOf("")
     var dateTime by mutableStateOf("Select Date & Time")
     var isExpanded by mutableStateOf(false)
+
+    // --- Event Flow for UI Navigation & Toasts ---
+    private val _addSymptomResult = MutableSharedFlow<SymptomResult>()
+    val addSymptomResult = _addSymptomResult.asSharedFlow()
+
+    sealed class SymptomResult {
+        object Success : SymptomResult()
+        data class Error(val message: String) : SymptomResult()
+    }
 
     /**
      * Resets the symptoms form fields.
@@ -46,13 +57,30 @@ class SymptomsViewModel(
     }
 
     /**
-     * Adds a new symptom to the database.
+     * Validates input and adds a new symptom to the database.
      */
-    fun addSymptom(symptom: Symptom, onComplete: () -> Unit) {
+    fun saveSymptom(patientId: String) {
         viewModelScope.launch {
-            symptomRepo.insertSymptom(symptom)
+            if (selectedCategory == "Select Category") {
+                _addSymptomResult.emit(SymptomResult.Error("Please select a category!"))
+                return@launch
+            }
+            if (dateTime == "Select Date & Time") {
+                _addSymptomResult.emit(SymptomResult.Error("When did this symptom occur?"))
+                return@launch
+            }
+
+            val newSymptom = Symptom(
+                patientId = patientId,
+                category = selectedCategory,
+                severity = severity.toInt().toString(),
+                notes = notes,
+                dateTime = dateTime
+            )
+
+            symptomRepo.insertSymptom(newSymptom)
             clearForm()
-            onComplete()
+            _addSymptomResult.emit(SymptomResult.Success)
         }
     }
 

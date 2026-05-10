@@ -54,6 +54,7 @@ import com.garent.s35123656.medtrack.data.entity.Medication
 import com.garent.s35123656.medtrack.data.viewModel.HomeViewModel
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.HealthAndSafety
+import com.garent.s35123656.medtrack.data.MedicationData
 
 /**
  * Main home screen
@@ -69,17 +70,7 @@ fun Home(patientId: String, viewModel: HomeViewModel, modifier: Modifier = Modif
     // Load the patient's name and check for daily reset
     LaunchedEffect(patientId) {
         if (patientId.isNotEmpty()) {
-            viewModel.loadPatientName(patientId)
-            
-            // Daily Reset Logic
-            val sharedPref = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-            val lastResetDate = sharedPref.getString("last_reset_date_$patientId", "")
-            val currentDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().time)
-            
-            if (lastResetDate != currentDate) {
-                viewModel.resetMedicationsStatus(patientId)
-                sharedPref.edit().putString("last_reset_date_$patientId", currentDate).apply()
-            }
+            viewModel.onHomeScreenStarted(patientId, context)
         }
     }
 
@@ -220,44 +211,44 @@ fun AddMedicationFAB(onClick: () -> Unit) {
     }
 }
 
-/**
- * Retrieves the medication list and filters it by PatientID.
- * Note: This helper might be legacy if using Room, but kept for compatibility.
- */
-fun getMedicationsForPatient(context: Context, targetId: String): List<MedicationData> {
-    val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
-    val gson = Gson()
-    val json = sharedPref.getString(targetId, null)
-
-    val sharedPrefMeds = if (json != null) {
-        val type = object : TypeToken<List<MedicationData>>() {}.type
-        gson.fromJson<List<MedicationData>>(json, type) ?: emptyList()
-    } else {
-        emptyList()
-    }
-
-    val csvMeds = mutableListOf<MedicationData>()
-    try {
-        context.assets.open("medications.csv").bufferedReader().useLines { lines ->
-            lines.drop(1).forEach { line ->
-                val tokens = line.split(",")
-                if (tokens.size >= 5 && tokens[0].trim() == targetId) {
-                    csvMeds.add(MedicationData(
-                        medPetientID = tokens[0].trim(),
-                        medicationName = tokens[1].trim(),
-                        dosage = tokens[2].trim(),
-                        frequency = tokens[3].trim(),
-                        scheduledTime = tokens[4].trim(),
-                        medicationType = tokens.getOrNull(5)?.trim() ?: "Unknown",
-                        notes = tokens.getOrNull(6)?.trim() ?: ""
-                    ))
-                }
-            }
-        }
-    } catch (e: Exception) { e.printStackTrace() }
-
-    return sharedPrefMeds.reversed() + csvMeds.reversed()
-}
+///**
+// * Retrieves the medication list and filters it by PatientID.
+// * Note: This helper might be legacy if using Room, but kept for compatibility.
+// */
+//fun getMedicationsForPatient(context: Context, targetId: String): List<MedicationData> {
+//    val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
+//    val gson = Gson()
+//    val json = sharedPref.getString(targetId, null)
+//
+//    val sharedPrefMeds = if (json != null) {
+//        val type = object : TypeToken<List<MedicationData>>() {}.type
+//        gson.fromJson<List<MedicationData>>(json, type) ?: emptyList()
+//    } else {
+//        emptyList()
+//    }
+//
+//    val csvMeds = mutableListOf<MedicationData>()
+//    try {
+//        context.assets.open("medications.csv").bufferedReader().useLines { lines ->
+//            lines.drop(1).forEach { line ->
+//                val tokens = line.split(",")
+//                if (tokens.size >= 5 && tokens[0].trim() == targetId) {
+//                    csvMeds.add(MedicationData(
+//                        medPetientID = tokens[0].trim(),
+//                        medicationName = tokens[1].trim(),
+//                        dosage = tokens[2].trim(),
+//                        frequency = tokens[3].trim(),
+//                        scheduledTime = tokens[4].trim(),
+//                        medicationType = tokens.getOrNull(5)?.trim() ?: "Unknown",
+//                        notes = tokens.getOrNull(6)?.trim() ?: ""
+//                    ))
+//                }
+//            }
+//        }
+//    } catch (e: Exception) { e.printStackTrace() }
+//
+//    return sharedPrefMeds.reversed() + csvMeds.reversed()
+//}
 
 /**
  * Card UI component for displaying medication details and status.
@@ -310,19 +301,6 @@ fun MedicationCard(med: Medication, onToggleTaken: (Boolean) -> Unit) {
     }
 }
 
-/**
- * Data class for legacy medication storage compatibility.
- */
-data class MedicationData(
-    val medPetientID: String? = "",
-    val medicationName: String? = "Unknown",
-    val dosage: String? = "",
-    val frequency: String? = "",
-    val scheduledTime: String? = "",
-    val medicationType: String? = "",
-    val notes: String? = "",
-    var isTaken: Boolean = false
-)
 
 /**
  * Bottom navigation bar for switching between core screens.
