@@ -242,7 +242,7 @@ fun showDateTimePicker(context: Context, onDateTimeSelected: (String) -> Unit) {
     DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
-            val datePart = String.format("%02d/%02d/%d", dayOfMonth, month + 1, year)
+            val datePart = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth)
             TimePickerDialog(
                 context,
                 { _, hour, minute ->

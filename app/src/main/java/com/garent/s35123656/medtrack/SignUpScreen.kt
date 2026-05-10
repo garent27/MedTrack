@@ -58,7 +58,11 @@ fun SignUp(
         viewModel.signUpResult.collect { result ->
             when (result) {
                 is SignUpViewModel.SignUpResult.Success -> {
-                    Toast.makeText(context, "Account created successfully!!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "Account created successfully!! Your user id is ${result.patientId}",
+                        Toast.LENGTH_LONG
+                    ).show()
                     navController.popBackStack()
                 }
                 is SignUpViewModel.SignUpResult.Error -> {
@@ -125,11 +129,7 @@ fun SignUp(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = {
-                if (password == confirmPassword) {
-                    viewModel.signUp()
-                }
-            },
+            onClick = { viewModel.signUp() },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Sign Up")

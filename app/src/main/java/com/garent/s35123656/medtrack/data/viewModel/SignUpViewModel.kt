@@ -25,7 +25,18 @@ class SignUpViewModel(private val patientRepo: PatientRepository) : ViewModel() 
 
     fun signUp() {
         viewModelScope.launch {
-            // Check if phone exists
+            // 1. Validate inputs inside the ViewModel
+            if (fullName.isBlank() || phone.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                _signUpResult.emit(SignUpResult.Error("Please fill out all fields."))
+                return@launch
+            }
+
+            if (password != confirmPassword) {
+                _signUpResult.emit(SignUpResult.Error("Passwords do not match."))
+                return@launch
+            }
+
+            // 2. Check if phone exists
             val existingUser = patientRepo.getPatientByPhone(phone)
             if (existingUser != null) {
                 _signUpResult.emit(SignUpResult.Error("This phone number is already registered"))

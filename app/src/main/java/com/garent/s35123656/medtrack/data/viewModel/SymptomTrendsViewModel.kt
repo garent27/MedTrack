@@ -33,11 +33,19 @@ class SymptomTrendsViewModel(
      */
     fun getSymptomTrends(patientId: String): Flow<List<Pair<String, Float>>> {
         return symptomRepo.getSymptomsForPatient(patientId).map { symptoms ->
-            symptoms.asReversed() 
+            symptoms.asReversed()
                 .groupBy { it.dateTime.split(" ").firstOrNull() ?: "" }
                 .map { (date, dailySymptoms) ->
                     val avgSeverity = dailySymptoms.map { it.severity.toFloatOrNull() ?: 0f }.average().toFloat()
-                    val simpleDate = date.split("/").take(2).joinToString("/")
+
+                    // NEW MVVM LOGIC: Format "YYYY-MM-DD" into short "DD/MM" for the UI chart
+                    val parts = date.split("-")
+                    val simpleDate = if (parts.size == 3) {
+                        "${parts[2]}/${parts[1]}" // Converts "2026-03-19" to "19/03"
+                    } else {
+                        date // Fallback just in case
+                    }
+
                     simpleDate to avgSeverity
                 }
                 .takeLast(7)

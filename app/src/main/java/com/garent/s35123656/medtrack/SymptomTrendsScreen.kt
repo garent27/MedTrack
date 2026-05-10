@@ -21,6 +21,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garent.s35123656.medtrack.data.viewModel.SymptomTrendsViewModel
+import androidx.compose.ui.draw.rotate
+
 import java.util.Locale
 
 /**
@@ -72,7 +74,7 @@ fun SymptomTrendsScreen(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "This chart shows the average severity of your logged symptoms over the last 7 days of entries.",
+                text = "This chart shows the average severity of your logged symptoms over the last 7 entries.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -193,7 +195,7 @@ fun SymptomTrendChart(data: List<Pair<String, Float>>) {
                 val width = size.width
                 val height = size.height
                 val spacing = width / (data.size - 1).coerceAtLeast(1)
-                
+
                 // Draw horizontal grid lines (Severity 1-10)
                 for (i in 0..5) {
                     val y = height - (i * height / 5)
@@ -210,13 +212,13 @@ fun SymptomTrendChart(data: List<Pair<String, Float>>) {
                 data.forEachIndexed { index, pair ->
                     val x = index * spacing
                     val y = height - (pair.second / 10f * height)
-                    
+
                     if (index == 0) {
                         path.moveTo(x, y)
                     } else {
                         path.lineTo(x, y)
                     }
-                    
+
                     drawCircle(
                         color = primaryColor,
                         radius = 5.dp.toPx(),
@@ -232,16 +234,24 @@ fun SymptomTrendChart(data: List<Pair<String, Float>>) {
             }
         }
     }
-    
+
     // X-Axis Labels
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp),
+            .padding(top = 16.dp), // Added slightly more top padding for the rotation
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         data.forEach { pair ->
-            Text(text = pair.first, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = pair.first, // The ViewModel has already formatted this as "19/03"!
+                fontSize = 11.sp, // Slightly smaller font
+                fontWeight = FontWeight.Medium,
+                color = Color.DarkGray,
+                modifier = Modifier
+                    .rotate(-35f) // Angles the text slightly upwards to prevent overlap
+                    .padding(end = 4.dp)
+            )
         }
     }
 }

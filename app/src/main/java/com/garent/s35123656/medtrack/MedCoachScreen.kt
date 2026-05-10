@@ -3,8 +3,6 @@ package com.garent.s35123656.medtrack
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.History
@@ -26,7 +24,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * MedCoach screen providing drug information from OpenFDA and GenAI medication tips.
+ * Improved MedCoach screen with a scrollable layout that allows sections to expand naturally.
+ * Follows MVVM architecture: All data and logic reside in the ViewModel.
  */
 @Composable
 fun MedCoach(
@@ -53,199 +52,206 @@ fun MedCoach(
         viewModel.loadTipHistory(patientId)
     }
 
-    Column(
+    // Root container changed to LazyColumn to allow content to expand and scroll properly
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "MedCoach",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
+        // Section: Screen Title
+        item {
+            Text(
+                text = "MedCoach",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Section: Drug Information
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Drug Information (OpenFDA)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
 
-        // --- Drug Information Section (Top Half) ---
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1.2f),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Drug Information (OpenFDA)",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.searchQuery = it },
-                    label = { Text("Search Drug Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    trailingIcon = {
-                        IconButton(onClick = { viewModel.searchDrug(searchQuery) }) {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.searchQuery = it },
+                        label = { Text("Search Drug Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        trailingIcon = {
+                            IconButton(onClick = { viewModel.searchDrug(searchQuery) }) {
+                                Icon(Icons.Default.Search, contentDescription = "Search")
+                            }
                         }
-                    }
-                )
+                    )
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (patientMeds.isNotEmpty()) {
-                    Box {
-                        OutlinedButton(
-                            onClick = { expanded = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Select From My Meds")
-                        }
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.fillMaxWidth(0.8f)
-                        ) {
-                            patientMeds.forEach { med ->
-                                DropdownMenuItem(
-                                    text = { Text(med) },
-                                    onClick = {
-                                        viewModel.searchDrug(med)
-                                        expanded = false
-                                    }
-                                )
+                    if (patientMeds.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box {
+                            OutlinedButton(
+                                onClick = { expanded = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Select From My Meds")
+                            }
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.fillMaxWidth(0.8f)
+                            ) {
+                                patientMeds.forEach { med ->
+                                    DropdownMenuItem(
+                                        text = { Text(med) },
+                                        onClick = {
+                                            viewModel.searchDrug(med)
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    if (isLoadingDrug) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    } else if (drugErrorMessage != null) {
-                        Text(
-                            text = drugErrorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.align(Alignment.Center),
-                            textAlign = TextAlign.Center
-                        )
-                    } else if (drugInfo != null) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
-                            item {
+                    // content area adapts height naturally
+                    when {
+                        isLoadingDrug -> {
+                            Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        drugErrorMessage != null -> {
+                            Text(
+                                text = drugErrorMessage ?: "Error",
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                            )
+                        }
+                        drugInfo != null -> {
+                            // Column inside card item expands based on content
+                            Column {
                                 DrugDetailItem("Purpose", drugInfo.purpose?.firstOrNull() ?: "N/A")
                                 DrugDetailItem("Warnings", drugInfo.warnings?.firstOrNull() ?: "N/A")
                                 DrugDetailItem("Dosage & Admin", drugInfo.dosage_and_administration?.firstOrNull() ?: "N/A")
                                 DrugDetailItem("Indications", drugInfo.indications_and_usage?.firstOrNull() ?: "N/A")
                             }
                         }
-                    } else {
-                        Text(
-                            text = "Enter a drug name above to see details.",
-                            color = Color.Gray,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        else -> {
+                            Text(
+                                text = "Enter a drug name above to see details.",
+                                color = Color.Gray,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- GenAI Tips Section (Bottom Half) ---
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+        // Section: GenAI Medication Tips
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "GenAI Medication Tips",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    
-                    IconButton(onClick = { viewModel.showHistoryDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Show All Tips",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    if (isLoadingTip) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    } else if (tipErrorMessage != null) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = tipErrorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.align(Alignment.Center),
-                            textAlign = TextAlign.Center
+                            text = "GenAI Medication Tips",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
-                    } else if (currentTip != null) {
-                        Column(
-                            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
+                        
+                        IconButton(onClick = { viewModel.showHistoryDialog = true }) {
                             Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = currentTip,
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                imageVector = Icons.Default.History,
+                                contentDescription = "Show All Tips",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                    } else {
-                        Text(
-                            text = "Tap the button below for a personalized tip!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray,
-                            modifier = Modifier.align(Alignment.Center),
-                            textAlign = TextAlign.Center
-                        )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Button(
-                    onClick = { viewModel.generateNewTip(patientId) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoadingTip
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Get Daily Tip")
+                    when {
+                        isLoadingTip -> {
+                            Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        tipErrorMessage != null -> {
+                            Text(
+                                text = tipErrorMessage ?: "Error",
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                            )
+                        }
+                        currentTip != null -> {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = currentTip ?: "",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        else -> {
+                            Text(
+                                text = "Tap the button below for a personalized tip!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { viewModel.generateNewTip(patientId) },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isLoadingTip
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Get Daily Tip")
+                    }
                 }
             }
         }
