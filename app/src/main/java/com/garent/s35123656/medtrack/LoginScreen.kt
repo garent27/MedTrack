@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,79 +53,93 @@ fun Login(
         }
     }
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.medtrack),
-            contentDescription = "MedTrack Logo",
-            modifier = Modifier.size(180.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Welcome Back",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = patientId,
-            onValueChange = { viewModel.patientId = it },
-            label = { Text("Patient ID (e.g. P1001)") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { viewModel.password = it },
-            label = { Text("Password") },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Button(
-            onClick = { viewModel.login() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Login")
+        item {
+            Image(
+                painter = painterResource(id = R.drawable.medtrack),
+                contentDescription = "MedTrack Logo",
+                modifier = Modifier.size(180.dp)
+            )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        item { Spacer(modifier = Modifier.height(16.dp)) }
 
-        TextButton(
-            onClick = { navController.navigate("claim_account") }
-        ) {
-            Text("Claim Account (CSV Users)", fontWeight = FontWeight.SemiBold)
+        item {
+            Text(
+                text = "Welcome Back",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        item { Spacer(modifier = Modifier.height(24.dp)) }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Don't have an account?", style = MaterialTheme.typography.bodyMedium)
+        item {
+            OutlinedTextField(
+                value = patientId,
+                onValueChange = { viewModel.patientId = it },
+                label = { Text("Patient ID (e.g. P1001)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
 
-            TextButton(
-                onClick = { navController.navigate("signup") }
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        item {
+            OutlinedTextField(
+                value = password,
+                onValueChange = { viewModel.password = it },
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+        }
+
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+
+        item {
+            Button(
+                onClick = { viewModel.login() },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Sign Up", fontWeight = FontWeight.Bold)
+                Text("Login")
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+
+        item {
+            TextButton(
+                onClick = { navController.navigate("claim_account") }
+            ) {
+                Text("Claim Account (CSV Users)", fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        item {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Don't have an account?", style = MaterialTheme.typography.bodyMedium)
+
+                TextButton(
+                    onClick = { navController.navigate("signup") }
+                ) {
+                    Text("Sign Up", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

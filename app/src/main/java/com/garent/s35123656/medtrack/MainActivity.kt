@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -323,67 +324,81 @@ fun MedTrackNavHost(
 fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.medtrack),
-            contentDescription = "App Logo",
-            modifier = Modifier.size(120.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "MedTrack",
-            fontSize = 42.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "This app is for tracking purposes only and does not replace professional medical advice.",
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-            color = Color.Gray
-        )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        TextButton(onClick = { uriHandler.openUri("https://www.monashhealth.org") }) {
-            Text("Visit Monash Health Clinic")
+        item {
+            Image(
+                painter = painterResource(id = R.drawable.medtrack),
+                contentDescription = "App Logo",
+                modifier = Modifier.size(120.dp)
+            )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        item { Spacer(modifier = Modifier.height(16.dp)) }
 
-        Button(
-            onClick = { navController.navigate("login") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Login")
+        item {
+            Text(
+                text = "MedTrack",
+                fontSize = 42.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        item { Spacer(modifier = Modifier.height(16.dp)) }
 
-        Button(
-            onClick = { navController.navigate("signup") },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Sign Up")
+        item {
+            Text(
+                text = "This app is for tracking purposes only and does not replace professional medical advice.",
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = Color.Gray
+            )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        item { Spacer(modifier = Modifier.height(48.dp)) }
 
-        Text(
-            text = "By Garent Ngor Jun Hoe (35123656)",
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.DarkGray
-        )
+        item {
+            TextButton(onClick = { uriHandler.openUri("https://www.monashhealth.org") }) {
+                Text("Visit Monash Health Clinic")
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+
+        item {
+            Button(
+                onClick = { navController.navigate("login") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Login")
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(16.dp)) }
+
+        item {
+            Button(
+                onClick = { navController.navigate("signup") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Sign Up")
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+
+        item {
+            Text(
+                text = "By Garent Ngor Jun Hoe (35123656)",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.DarkGray
+            )
+        }
     }
 }

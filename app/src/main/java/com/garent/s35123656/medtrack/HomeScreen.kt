@@ -45,8 +45,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
-import com.google.gson.reflect.TypeToken
-import com.google.gson.Gson
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.runtime.collectAsState
@@ -210,45 +208,6 @@ fun AddMedicationFAB(onClick: () -> Unit) {
         Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
 }
-
-///**
-// * Retrieves the medication list and filters it by PatientID.
-// * Note: This helper might be legacy if using Room, but kept for compatibility.
-// */
-//fun getMedicationsForPatient(context: Context, targetId: String): List<MedicationData> {
-//    val sharedPref = context.getSharedPreferences("medications", Context.MODE_PRIVATE)
-//    val gson = Gson()
-//    val json = sharedPref.getString(targetId, null)
-//
-//    val sharedPrefMeds = if (json != null) {
-//        val type = object : TypeToken<List<MedicationData>>() {}.type
-//        gson.fromJson<List<MedicationData>>(json, type) ?: emptyList()
-//    } else {
-//        emptyList()
-//    }
-//
-//    val csvMeds = mutableListOf<MedicationData>()
-//    try {
-//        context.assets.open("medications.csv").bufferedReader().useLines { lines ->
-//            lines.drop(1).forEach { line ->
-//                val tokens = line.split(",")
-//                if (tokens.size >= 5 && tokens[0].trim() == targetId) {
-//                    csvMeds.add(MedicationData(
-//                        medPetientID = tokens[0].trim(),
-//                        medicationName = tokens[1].trim(),
-//                        dosage = tokens[2].trim(),
-//                        frequency = tokens[3].trim(),
-//                        scheduledTime = tokens[4].trim(),
-//                        medicationType = tokens.getOrNull(5)?.trim() ?: "Unknown",
-//                        notes = tokens.getOrNull(6)?.trim() ?: ""
-//                    ))
-//                }
-//            }
-//        }
-//    } catch (e: Exception) { e.printStackTrace() }
-//
-//    return sharedPrefMeds.reversed() + csvMeds.reversed()
-//}
 
 /**
  * Card UI component for displaying medication details and status.
