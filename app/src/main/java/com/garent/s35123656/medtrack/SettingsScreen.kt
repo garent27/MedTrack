@@ -1,6 +1,7 @@
 package com.garent.s35123656.medtrack
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AdminPanelSettings
@@ -34,59 +35,72 @@ fun SettingsScreen(
         viewModel.loadUserInfo(patientId)
     }
 
-    Column(
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        contentPadding = PaddingValues(top = 24.dp, bottom = 32.dp)
     ) {
-        Text(
-            text = "Settings",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.align(Alignment.Start)
-        )
+        item {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Profile Section
-        Icon(
-            imageVector = Icons.Default.AccountCircle,
-            contentDescription = null,
-            modifier = Modifier.size(100.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (user != null) {
-            InfoRow(label = "Name", value = user.name)
-            InfoRow(label = "Phone", value = user.phoneNumber)
-            InfoRow(label = "Patient ID", value = user.patientId)
-        } else {
-            CircularProgressIndicator()
+            Spacer(modifier = Modifier.height(32.dp))
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        item {
+            // Profile Section
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = null,
+                modifier = Modifier.size(100.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
 
-        // Actions Section
-        SettingsButton(
-            text = "Clinician Login",
-            icon = Icons.Default.AdminPanelSettings,
-            onClick = onClinicianLogin,
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-        )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        if (user != null) {
+            item { InfoRow(label = "Name", value = user.name) }
+            item { InfoRow(label = "Phone", value = user.phoneNumber) }
+            item { InfoRow(label = "Patient ID", value = user.patientId) }
+        } else {
+            item {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
 
-        SettingsButton(
-            text = "Logout",
-            icon = Icons.Default.Logout,
-            onClick = onLogout,
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-            contentColor = MaterialTheme.colorScheme.onErrorContainer
-        )
+        item {
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Actions Section
+            SettingsButton(
+                text = "Clinician Login",
+                icon = Icons.Default.AdminPanelSettings,
+                onClick = onClinicianLogin,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        item {
+            SettingsButton(
+                text = "Logout",
+                icon = Icons.Default.Logout,
+                onClick = onLogout,
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
     }
 }
 

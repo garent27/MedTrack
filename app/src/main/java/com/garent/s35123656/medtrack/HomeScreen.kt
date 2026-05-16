@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -80,95 +81,100 @@ fun Home(patientId: String, viewModel: HomeViewModel, modifier: Modifier = Modif
     val totalMeds = medicationList.size
     val takenMeds = medicationList.count { it.isTaken }
 
-    // Main layout
-    Column(
+    // Updated to a single LazyColumn to support horizontal/landscape scrolling
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 24.dp),
+        contentPadding = PaddingValues(top = 24.dp, bottom = 32.dp)
     ) {
         // Welcome section with Patient ID for reminder
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Column {
-                Text(
-                    text = "Hello, $patientName",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "ID: $patientId",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontWeight = FontWeight.SemiBold
-                )
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = "Hello, $patientName",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "ID: $patientId",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         // Current date display
-        Text(
-            text = currentDateText,
-            fontSize = 18.sp,
-            color = MaterialTheme.colorScheme.secondary,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        item {
+            Text(
+                text = currentDateText,
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.secondary,
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Your Medications",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
+        item {
+            Text(
+                text = "Your Medications",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
         // Conditional display based on medication list
         if (medicationList.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No medications scheduled.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Gray
-                )
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 64.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No medications scheduled.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color.Gray
+                    )
+                }
             }
         } else {
             // Summary card
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "$takenMeds of $totalMeds medications taken today",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // List of medication cards
-            LazyColumn {
-                items(medicationList) { med ->
-                    MedicationCard(
-                        med = med,
-                        onToggleTaken = { isChecked ->
-                            viewModel.toggleMedicationTaken(med.id, isChecked)
-                        }
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "$takenMeds of $totalMeds medications taken today",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            // List of medication cards
+            items(medicationList) { med ->
+                MedicationCard(
+                    med = med,
+                    onToggleTaken = { isChecked ->
+                        viewModel.toggleMedicationTaken(med.id, isChecked)
+                    }
+                )
             }
         }
     }
