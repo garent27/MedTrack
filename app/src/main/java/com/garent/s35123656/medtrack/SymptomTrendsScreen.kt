@@ -42,6 +42,17 @@ fun SymptomTrendsScreen(
     val isAnalyzing = viewModel.isAnalyzingTrends
     val errorMessage = viewModel.trendErrorMessage
 
+    // Create a scroll state to manage manual and automatic scrolling
+    val scrollState = rememberScrollState()
+
+    // Automatic scroll logic: When a new answer is generated, scroll to the bottom
+    LaunchedEffect(trendAnswer) {
+        if (trendAnswer != null) {
+            // Animate scroll to the maximum possible value (the bottom of the content)
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,7 +70,7 @@ fun SymptomTrendsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState), // Use the explicit scrollState here
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(16.dp))

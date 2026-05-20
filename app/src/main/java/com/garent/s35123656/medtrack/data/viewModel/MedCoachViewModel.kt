@@ -15,6 +15,9 @@ import com.garent.s35123656.medtrack.data.repository.PatientRepository
 import com.garent.s35123656.medtrack.data.repository.SymptomRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.net.UnknownHostException
+import java.net.SocketTimeoutException
+import retrofit2.HttpException
 
 class MedCoachViewModel(
     private val drugRepository: DrugRepository,
@@ -62,22 +65,18 @@ class MedCoachViewModel(
                 if (info != null) {
                     drugInfo = info
                 } else {
-                    // Handle case where API returns 200 but results are empty
                     drugErrorMessage = "No information found for \"$name\". Please check the spelling."
                 }
                 isLoadingDrug = false
             }.onFailure { error ->
-                // Specific error handling for network and API failures
                 drugErrorMessage = when (error) {
-                    is java.net.UnknownHostException ->
-                        "No internet connection. Please check your network and try again."
-                    is java.net.SocketTimeoutException ->
-                        "The request timed out. The FDA server might be busy, please try again."
-                    is retrofit2.HttpException -> {
-                        if (error.code() == 404) "Medication not found. Please check the drug name spelling."
-                        else "FDA Service error (Code: ${error.code()}). Please try again later."
+                    is UnknownHostException -> "No internet connection. Please check your network."
+                    is SocketTimeoutException -> "The request timed out. Please try again."
+                    is HttpException -> {
+                        if (error.code() == 404) "Medication not found."
+                        else "FDA Service error (Code: ${error.code()})."
                     }
-                    else -> "An unexpected error occurred while searching for \"$name\"."
+                    else -> "An unexpected error occurred."
                 }
                 isLoadingDrug = false
             }
@@ -88,19 +87,35 @@ class MedCoachViewModel(
         viewModelScope.launch {
             isLoadingTip = true
             tipErrorMessage = null
+            currentTip = null
             
-            // Fetch patient data for context
-            val name = patientRepository.getPatientNameById(patientId) ?: "User"
-            val meds = medicationRepository.getMedicationsForPatient(patientId).first()
-            val symptoms = symptomRepository.getSymptomsForPatient(patientId).first()
-            
-            val result = medCoachRepository.generateTip(patientId, name,  meds, symptoms)
-            result.onSuccess { tip ->
-                currentTip = tip
-                isLoadingTip = false
-                loadTipHistory(patientId) // Refresh history
-            }.onFailure { error ->
-                tipErrorMessage = "Failed to generate tip: ${error.message}"
+            try {
+                val name = patientRepository.getPatientNameById(patientId) ?: "User"
+                val meds = medicationRepository.getMedicationsForPatient(patientId).first()
+                val symptoms = symptomRepository.getSymptomsForPatient(patientId).first()
+                
+                val result = medCoachRepository.generateTip(patientId, name, meds, symptoms)
+                result.onSuccess { tip ->
+                    currentTip = tip
+                    isLoadingTip = false
+                    loadTipHistory(patientId)
+                }.onFailure { error ->
+                    tipErrorMessage = when (error) {
+                        is UnknownHostException -> "No internet connection. Please check your network and try again."
+                        is SocketTimeoutException -> "The request timed out. Please try again later."
+                        is HttpException -> {
+                            when (error.code()) {
+                                429 -> "Rate limit reached. Please wait a moment before trying again."
+                                403 -> "API Access denied. Please check configuration."
+                                else -> "AI Service error (Code: ${error.code()})."
+                            }
+                        }
+                        else -> "AI Coach is currently unavailable. Please try again soon."
+                    }
+                    isLoadingTip = false
+                }
+            } catch (e: Exception) {
+                tipErrorMessage = "Error preparing data for AI. Please try again."
                 isLoadingTip = false
             }
         }

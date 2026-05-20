@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.net.UnknownHostException
+import java.net.SocketTimeoutException
 
 /**
  * ViewModel for the Symptom Trends screen.
@@ -33,17 +35,17 @@ class SymptomTrendsViewModel(
      */
     fun getSymptomTrends(patientId: String): Flow<List<Pair<String, Float>>> {
         return symptomRepo.getSymptomsForPatient(patientId).map { symptoms ->
-            symptoms.asReversed()
+            symptoms.asReversed() 
                 .groupBy { it.dateTime.split(" ").firstOrNull() ?: "" }
                 .map { (date, dailySymptoms) ->
                     val avgSeverity = dailySymptoms.map { it.severity.toFloatOrNull() ?: 0f }.average().toFloat()
 
-                    // NEW MVVM LOGIC: Format "YYYY-MM-DD" into short "DD/MM" for the UI chart
+                    // MVVM LOGIC: Format "YYYY-MM-DD" into short "DD/MM" for the UI chart
                     val parts = date.split("-")
                     val simpleDate = if (parts.size == 3) {
-                        "${parts[2]}/${parts[1]}" // Converts "2026-03-19" to "19/03"
+                        "${parts[2]}/${parts[1]}"
                     } else {
-                        date // Fallback just in case
+                        date
                     }
 
                     simpleDate to avgSeverity
@@ -54,6 +56,7 @@ class SymptomTrendsViewModel(
 
     /**
      * Sends the trend data, full symptom history context, and user question to the GenAI model.
+     * Includes user-friendly error handling for network or API issues.
      */
     fun askAiAboutTrends(patientId: String) {
         if (trendQuestion.isBlank()) return
@@ -61,6 +64,7 @@ class SymptomTrendsViewModel(
         viewModelScope.launch {
             isAnalyzingTrends = true
             trendErrorMessage = null
+            trendAnswer = null
             
             try {
                 // Fetch current trends and all symptoms for full context
@@ -73,11 +77,15 @@ class SymptomTrendsViewModel(
                     trendAnswer = answer
                     isAnalyzingTrends = false
                 }.onFailure { error ->
-                    trendErrorMessage = "AI Analysis failed: ${error.message}"
+                    trendErrorMessage = when (error) {
+                        is UnknownHostException -> "No internet connection. Please check your network and try again."
+                        is SocketTimeoutException -> "The request timed out. Please try again later."
+                        else -> "AI Expert is currently unavailable. Please try again soon."
+                    }
                     isAnalyzingTrends = false
                 }
             } catch (e: Exception) {
-                trendErrorMessage = "Error gathering data: ${e.message}"
+                trendErrorMessage = "Error gathering health logs. Please try again."
                 isAnalyzingTrends = false
             }
         }
