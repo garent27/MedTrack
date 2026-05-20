@@ -41,6 +41,19 @@ class MedCoachViewModel(
     var tipHistory by mutableStateOf<List<MedCoachTip>>(emptyList())
     var showHistoryDialog by mutableStateOf(false)
 
+    /**
+     * Clears all session-specific data and AI generated outputs.
+     */
+    fun clearSessionData() {
+        currentTip = null
+        tipErrorMessage = null
+        searchQuery = ""
+        drugInfo = null
+        drugErrorMessage = null
+        patientMedications = emptyList()
+        tipHistory = emptyList()
+    }
+
     fun loadPatientMedications(patientId: String) {
         viewModelScope.launch {
             val meds = medicationRepository.getMedicationsForPatient(patientId).first()

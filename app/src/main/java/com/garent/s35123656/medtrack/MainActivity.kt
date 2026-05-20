@@ -146,6 +146,13 @@ class MainActivity : ComponentActivity() {
                 val onLogout = {
                     sharedPref.edit().remove("logged_in_id").apply()
                     loggedInId = null
+                    
+                    // Clear GenAI outputs and session data from all ViewModels to ensure privacy between sessions
+                    medCoachViewModel.clearSessionData()
+                    symptomTrendsViewModel.clearAiOutput()
+                    clinicianViewModel.clearAiInsights()
+                    clinicianLoginViewModel.clearData()
+
                     navController.navigate("welcome") {
                         popUpTo(0) { inclusive = true }
                     }

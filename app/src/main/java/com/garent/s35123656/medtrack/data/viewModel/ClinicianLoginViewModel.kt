@@ -18,6 +18,13 @@ class ClinicianLoginViewModel : ViewModel() {
 
     private val predefinedKey = "dollar-entry-apples"
 
+    /**
+     * Clears the access key entered by the clinician.
+     */
+    fun clearData() {
+        accessKey = ""
+    }
+
     fun login() {
         viewModelScope.launch {
             if (accessKey == predefinedKey) {

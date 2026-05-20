@@ -30,6 +30,14 @@ class ClinicianViewModel(
     var isFindingPatterns by mutableStateOf(false)
     var patternErrorMessage by mutableStateOf<String?>(null)
 
+    /**
+     * Clears GenAI generated insights.
+     */
+    fun clearAiInsights() {
+        aiInsights = emptyList()
+        patternErrorMessage = null
+    }
+
     fun loadStatistics() {
         viewModelScope.launch {
             isLoading = true

@@ -25,10 +25,21 @@ class SymptomTrendsViewModel(
 ) : ViewModel() {
 
     // --- GenAI Trend Question State ---
+    var symptomToAnalyze by mutableStateOf("")
     var trendQuestion by mutableStateOf("")
     var trendAnswer by mutableStateOf<String?>(null)
     var isAnalyzingTrends by mutableStateOf(false)
     var trendErrorMessage by mutableStateOf<String?>(null)
+
+    /**
+     * Clears GenAI generated response and related states.
+     */
+    fun clearAiOutput() {
+        trendAnswer = null
+        trendQuestion = ""
+        symptomToAnalyze = ""
+        trendErrorMessage = null
+    }
 
     /**
      * Processes symptom history into trend data (Date -> Average Severity).
@@ -43,9 +54,9 @@ class SymptomTrendsViewModel(
                     // MVVM LOGIC: Format "YYYY-MM-DD" into short "DD/MM" for the UI chart
                     val parts = date.split("-")
                     val simpleDate = if (parts.size == 3) {
-                        "${parts[2]}/${parts[1]}"
+                        "${parts[2]}/${parts[1]}" // Converts "2026-03-19" to "19/03"
                     } else {
-                        date
+                        date // Fallback just in case
                     }
 
                     simpleDate to avgSeverity
