@@ -3,6 +3,7 @@ package com.garent.s35123656.medtrack
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.garent.s35123656.medtrack.data.viewModel.ClinicianViewModel
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,8 +32,18 @@ fun ClinicianDashboard(
     viewModel: ClinicianViewModel,
     onBack: () -> Unit
 ) {
+    val listState = rememberLazyListState()
+
     LaunchedEffect(Unit) {
         viewModel.loadStatistics()
+    }
+
+    // Auto-scroll logic: When aiInsights is updated, scroll to the bottom
+    LaunchedEffect(viewModel.aiInsights) {
+        if (viewModel.aiInsights.isNotEmpty()) {
+            delay(100) // Small delay to let the list items populate
+            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
+        }
     }
 
     Scaffold(
@@ -52,6 +64,7 @@ fun ClinicianDashboard(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)

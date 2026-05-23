@@ -1,5 +1,6 @@
 package com.garent.s35123656.medtrack.data.repository
 
+import com.garent.s35123656.medtrack.BuildConfig
 import com.garent.s35123656.medtrack.data.dao.MedCoachTipDao
 import com.garent.s35123656.medtrack.data.entity.MedCoachTip
 import com.garent.s35123656.medtrack.data.entity.Medication
@@ -20,7 +21,7 @@ class MedCoachRepository(private val medCoachTipDao: MedCoachTipDao) {
         .build()
 
     private val geminiService = geminiRetrofit.create(GeminiService::class.java)
-    private val apiKey = "AIzaSyBGZs9YTKXif__XrfsUgKWDa8O_OkY4X4U"
+    private val apiKey = BuildConfig.GEMINI_API_KEY
 
     suspend fun generateTip(
         patientId: String,
@@ -50,7 +51,7 @@ class MedCoachRepository(private val medCoachTipDao: MedCoachTipDao) {
             Instruction: Use this context to provide a supportive tip that helps them stay on top of their medication schedule. 
             If they have symptoms, acknowledge them gently without giving medical advice.
             Keep the message under 100 words.
-            always add "(:" at the end of the message.
+            always add ":)" at the end of the message.
         """.trimIndent()
 
         val request = GeminiRequest(
